@@ -1,5 +1,18 @@
 # Bettervest: 7 minute presentation script
 
+## Click path at a glance (login to the end)
+
+1. **Login screen** → email `john.doe@bettervest.app`, password from the README → **Log in**. John's dashboard opens.
+2. **Edit details** → **About you** (amount, investment horizon) → **Continue**.
+3. **Preferences** → move the risk slider → **Use an example** → **Continue**.
+4. **Here's what we understood** → point at a rule's quote ("Hard because you said can't") → **Build my portfolio**.
+5. **Dashboard** → point at the dollar amounts, the bad year loss line and the **Committee review** card.
+6. Click a holding with a **Judge: BUY** badge → drawer opens → **Show committee review** → phases 1 to 4 → **Question the Judge**.
+7. **Close** the drawer → switch to the **Backstage** tab → latest session → a company tagged **COMPLIANCE_BLOCK** → **Show transcript**.
+8. Back to the main site → sidebar **Assistant** tab → ask about Pfizer vs Johnson & Johnson volatility.
+9. Top bar **A+ Larger text** (then switch it back).
+10. Optional: **Challenge it** → **Own** a company → watch the toast. Then close on the dashboard.
+
 Two people: **Speaker** (talks, faces the judge) and **Driver** (clicks, never talks over the Speaker).
 Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and which "10: Outstanding" box it ticks.
 
@@ -10,7 +23,7 @@ Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and w
 1. Run `./start.sh` and leave that terminal open. Check http://localhost:3000/api/llm-health says `ok: true`.
 2. Log in as **John Doe** (`john.doe@bettervest.app`, password in the README).
 3. Go through About you and preferences with **Use an example**, build the portfolio, and **wait for the Committee review card to finish** (about 2 minutes). This caches the run so it loads instantly on stage.
-4. Click **Edit preferences** or go back to the start screen so you can show the flow live; the cached committee result comes back instantly with the same inputs.
+4. Log out. On stage, logging back in as John opens his dashboard straight away, and the committee result loads instantly because the inputs are the same.
 5. Open **Backstage** (http://localhost:3000/backstage) in a second tab.
 6. Browser zoom 110 to 125% so the back row can read it. Larger text toggle off.
 7. Backup: screenshots of the dashboard, a committee transcript and a COMPLIANCE_BLOCK in Backstage, in case the Wi‑Fi or AI drops.
@@ -31,11 +44,11 @@ Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and w
 
 ## 0:40 to 1:50 · His rules, in his own words
 
-**Driver:** log in as John Doe, then **About you**. Point at **Amount you plan to invest** and **Investment horizon (years)**.
+**Driver:** log in as John Doe. His dashboard opens. Click **Edit details** to show how he set it up: **About you**. Point at **Amount you plan to invest** and **Investment horizon (years)**.
 
 **Speaker:** "Two numbers to start: how much, and for how long."
 
-**Driver:** **Continue**. On preferences, drag the risk slider so the bad year loss line updates, then click **Use an example** and **Understand my preferences**.
+**Driver:** **Continue**. On preferences, drag the risk slider so the bad year loss line updates, then click **Use an example** and **Continue**. The "Here's what we understood" screen appears.
 
 **Speaker:**
 > "Now he just talks: *I can't stomach losing more than about 15% in a bad year. No gambling or tobacco. I like dividends.*
@@ -49,7 +62,7 @@ Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and w
 
 ## 1:50 to 2:40 · The recommendation
 
-**Driver:** **Build my portfolio**. The dashboard appears.
+**Driver:** **Build my portfolio**. The dashboard appears (instantly, because the same inputs were rehearsed).
 
 **Speaker:**
 > "Here's the recommendation: exactly where his $100,000 goes, company by company, in dollars.
@@ -108,11 +121,11 @@ Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and w
 
 ## 5:30 to 6:20 · Built for real people
 
-**Driver:** back to the main site. Click **Ask** (bottom right) and type *"Is Pfizer more volatile than Johnson and Johnson?"*
+**Driver:** back to the main site. In the sidebar, open the **Assistant** tab and type *"Is Pfizer more volatile than Johnson and Johnson?"*
 
 **Speaker:** "Any term on screen has an info button, and the help assistant looks up live data to answer." *(It answers with both volatility figures.)*
 
-**Driver:** click **A+ Larger text**.
+**Driver:** click **A+ Larger text** in the top bar (click it again after, to switch back).
 
 **Speaker:** "And we designed for older investors like John: bigger buttons, higher contrast text, and one tap for larger text."
 
