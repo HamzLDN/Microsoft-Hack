@@ -132,18 +132,6 @@ export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, o
               <ul className="mt-2 grid gap-1 text-sm">{trust.learned.notes.map((n) => <li key={n}>{n}</li>)}</ul>
             </div>
           ) : null}
-          {trust && (
-            <div className="paper p-5">
-              <p className="label">Trust</p>
-              <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
-                <div><b className="num block text-xl font-medium">{trust.stats.numbersChecked}</b><span className="text-muted">AI numbers checked against data</span></div>
-                <div><b className="num block text-xl font-medium">{trust.stats.unsupportedBlocked}</b><span className="text-muted">unsupported numbers blocked</span></div>
-                <div><b className="num block text-xl font-medium">{trust.stats.analystRuns}</b><span className="text-muted">analyst reviews run</span></div>
-                {trust.correctionRate !== null && <div><b className="num block text-xl font-medium">{trust.correctionRate}%</b><span className="text-muted">rules users corrected<Info term="Correction rate" onAsk={onAsk} /></span></div>}
-                {trust.evals?.ruleAccuracy && <div className="col-span-2"><b className="num text-xl font-medium">{trust.evals.ruleAccuracy.before}% to {trust.evals.ruleAccuracy.after}%</b> <span className="text-muted">rule accuracy before and after learning</span></div>}
-              </div>
-            </div>
-          )}
           <div className="flex flex-wrap gap-2"><button className="btn" onClick={onConsidered}>See everything we considered</button><button className="btn-ghost" onClick={onChallenge}>Challenge it</button></div>
         </div>
       </div>

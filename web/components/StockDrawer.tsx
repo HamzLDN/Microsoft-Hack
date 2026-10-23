@@ -12,7 +12,9 @@ const AGENTS: { key: AgentName; title: string; tag: string; color: string }[] = 
   { key: "fit", title: "Client fit analyst", tag: "your rules", color: "#3E8E7E" },
 ];
 const RANGES = ["1W", "1M", "6M", "1Y", "5Y"];
-type Run = { output: AnalystOutput; evidence: Evidence[]; attempts: number };
+type Run = { output: AnalystOutput; evidence: Evidence[]; attempts: number; provider?: string };
+type Turn = { from: AgentName; to: AgentName | "committee"; kind: "agree" | "challenge" | "question" | "summary"; text: string; evidenceIds: string[]; model: string };
+type Debate = { turns: Turn[]; finalStances: Record<AgentName, AnalystOutput["stance"]>; fallback: boolean };
 type Msg = { role: "user" | "assistant"; content: string };
 
 function Chart({ points }: { points: [string, number][] }) {
@@ -99,11 +101,12 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
   const [metrics, setMetrics] = useState<Record<string, { value: number; source: string; asOf: string }>>({});
   const [runs, setRuns] = useState<Partial<Record<AgentName, Run>>>({});
   const [weights, setWeights] = useState<Record<string, number> | null>(null);
+  const [debate, setDebate] = useState<Debate | null>(null);
 
   useEffect(() => { if (ticker) api(`/api/data/history/${ticker}?range=${range}`).then((r) => setPoints(r.points)).catch(() => setPoints([])); }, [ticker, range]);
   useEffect(() => {
     if (!ticker) return;
-    setRuns({}); setMetrics({}); setQuote(null); setWeights(null); setRange("1Y");
+    setRuns({}); setMetrics({}); setQuote(null); setWeights(null); setRange("1Y"); setDebate(null);
     api(`/api/data/metrics/${ticker}`).then((r) => setMetrics(r.metrics)).catch(() => null);
     const q = () => api(`/api/data/quote/${ticker}`).then(setQuote).catch(() => null);
     q();
@@ -114,16 +117,25 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
     if (!c || !p) return;
     for (const a of AGENTS) {
       api("/api/analysis", { agent: a.key, candidate: c, rules, badYearLoss: p.badYearLoss, client })
-        .then((r) => setRuns((x) => ({ ...x, [a.key]: { output: r.output, evidence: r.evidence, attempts: r.attempts } })))
+        .then((r) => setRuns((x) => ({ ...x, [a.key]: { output: r.output, evidence: r.evidence, attempts: r.attempts, provider: r.provider } })))
         .catch(() => null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c?.ticker]);
 
   const done = AGENTS.map((a) => runs[a.key]).filter(Boolean) as Run[];
-  const decision = c && done.length === 3 ? decide(c, done.map((r) => r.output), rules) : null;
-  const askAnalyst = async (agent: AgentName, messages: Msg[]) =>
-    (await api("/api/chat", { mode: "analyst", agent, evidence: runs[agent]?.evidence ?? [], messages })).reply as string;
+  useEffect(() => {
+    if (!c || done.length !== 3 || debate) return;
+    api<Debate>("/api/debate", { candidate: c, round1: done.map((r) => r.output), evidence: done[0].evidence, client }).then(setDebate).catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done.length, c?.ticker]);
+  const finalOutputs = done.map((r) => (debate ? { ...r.output, stance: debate.finalStances[r.output.agent] ?? r.output.stance } : r.output));
+  const decision = c && done.length === 3 && debate ? decide(c, finalOutputs, rules) : null;
+  const askAnalyst = async (agent: AgentName, messages: Msg[]) => {
+    const r = runs[agent];
+    const view = r ? r.output.points.map((p) => `${p.polarity === "pro" ? "+" : "minus"} ${p.text}`).join("; ") : "";
+    return (await api("/api/chat", { mode: "analyst", agent, evidence: r?.evidence ?? [], client, view, messages })).reply as string;
+  };
   const fmt = (k: string, v: number) => (k === "price" ? `$${v.toFixed(2)}` : k === "mcap" ? `$${v.toFixed(0)}B` : ["pe", "beta", "debtToEquity"].includes(k) ? v.toFixed(2) : `${v.toFixed(1)}%`);
   const parts = c?.score.parts ?? [];
   const w = weights ?? Object.fromEntries(parts.map((x) => [x.name, x.weight]));
@@ -190,9 +202,33 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
               </section>
             )}
 
-            <section className="mt-6"><p className="label mb-3">AI analysis · three specialists</p>
+            <section className="mt-6"><p className="label mb-3">AI analysis · round 1 · each specialist&apos;s view</p>
               <div className="grid gap-4">{AGENTS.map((a) => <AnalystCard key={a.key} a={a} run={runs[a.key]} onAsk={askAnalyst} />)}</div>
             </section>
+
+            {done.length === 3 && (
+              <section className="mt-6">
+                <p className="label mb-3">Round 2 · committee discussion</p>
+                {!debate ? <p className="animate-pulse text-sm text-muted">The analysts are reading each other&apos;s views…</p> : (
+                  <div className="grid gap-3 rounded-xl border border-line bg-card p-4">
+                    {debate.turns.map((t, i) => {
+                      const from = AGENTS.find((a) => a.key === t.from)!;
+                      const to = t.to === "committee" ? "the committee" : AGENTS.find((a) => a.key === t.to)!.title;
+                      return (
+                        <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.35 }} className="grid grid-cols-[32px_1fr] gap-3">
+                          <div className="grid h-8 w-8 place-items-center rounded-lg font-serif font-semibold text-white" style={{ background: from.color }}>{from.title[0]}</div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted"><b className="text-ink">{from.title}</b> to {to} · {t.kind === "challenge" ? <span className="text-bad">challenges</span> : t.kind === "agree" ? <span className="text-good">agrees</span> : t.kind === "question" ? <span className="text-warn">asks</span> : "sums up"} <span className="num ml-1 rounded bg-sky px-1.5 text-[10px] text-accent">{t.model}</span></p>
+                            <p className="mt-1 rounded-xl rounded-tl-sm bg-sky p-3 text-sm"><Bold text={t.text} /> {t.evidenceIds.map((id) => <span key={id} className="num ml-1 rounded bg-card px-1 text-[10px] text-accent">{id}</span>)}</p>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    <p className="text-xs text-muted">After the discussion: {AGENTS.map((a) => `${a.title.split(" ")[0]} leans ${debate.finalStances[a.key]}`).join(" · ")}.{debate.fallback ? " Discussion generated from the data while the AI key is not connected." : ""}</p>
+                  </div>
+                )}
+              </section>
+            )}
 
             {decision && (
               <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-5 rounded-xl border-2 border-accent bg-sky p-4">

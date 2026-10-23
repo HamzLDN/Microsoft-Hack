@@ -153,7 +153,7 @@ export default function Home() {
           {step === "considered" && p && <ConsideredScreen key="c" p={p} rules={rules} onOpen={setDrawer} onBack={() => setStep("portfolio")} onChallenge={() => setStep("challenge")} />}
           {step === "challenge" && p && <ChallengeScreen key="ch" p={p} onDecide={onSwipe} onOpen={setDrawer} onDone={() => setStep("portfolio")} learnedNote={learnedNote} />}
         </AnimatePresence>
-        {step !== "auth" && step !== "boot" && <p className="mt-12 text-center text-xs text-muted">Educational hackathon project. Not financial advice.</p>}
+        {step !== "auth" && step !== "boot" && <p className="mt-12 text-center text-xs text-muted">Educational hackathon project. Not financial advice. · <a href="/system" target="_blank" className="underline hover:text-accent">System checks</a></p>}
       </div>
 
       <StockDrawer ticker={drawer} p={p} rules={rules} client={client} shown={shown} onClose={() => setDrawer(null)} onAsk={ask} onReweight={reweight} />
