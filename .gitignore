@@ -1,6 +1,7 @@
 .env
 .env.local
 node_modules/
+mcp-server/dist/
 .next/
 *.db
 *.db-journal
