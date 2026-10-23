@@ -14,7 +14,10 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { externalDir: true },
+  experimental: {
+    externalDir: true,
+    serverComponentsExternalPackages: ["@modelcontextprotocol/sdk", "zod"],
+  },
   webpack(config) {
     // shared/contract.ts lives outside web/, so point its imports (zod) at web/node_modules
     config.resolve.modules = [path.join(here, "node_modules"), ...(config.resolve.modules || ["node_modules"])];
