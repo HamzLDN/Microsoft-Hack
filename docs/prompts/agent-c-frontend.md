@@ -144,3 +144,21 @@ Done by 1:15: screens 2 to 8 and the drawer on mocks. 1:50: swipe, help assistan
 | 2:15 to 2:30 | Pre-warm demo data, freeze | Pre-warm analysis cache, freeze | Demo walkthrough, backup mode (load cached demo run with one key) |
 
 Cut order if behind: Compare, live quote polling, weight editing, login (fall back to the seeded demo user). Never cut: rules with quotes, pros and cons everywhere, the drawer with three analysts and guardrails, considered list, bad year loss line.
+
+
+---
+
+## LEARNING FROM USER REFINEMENTS (your part)
+
+Mandate learns from every correction a user makes. No model training: we store corrections and feed them back at run time (in-context learning with memory), and we measure the effect. Never claim the model was trained, and never show an accuracy number that the eval script or the database did not produce.
+
+1. Send `POST /api/feedback` on: switching Hard rule and Preference, editing, removing or adding a rule, every swipe, and every weight change in "Change how we score".
+2. On "Here's what we understood", rule cards that came from memory show a small badge: "Learned from 6 earlier corrections".
+3. Portfolio screen: a "Learned from you" card listing the notes from `/api/learning` (for example "You value Stability more (+4)"), with a Reset button.
+4. Trust panel: correction rate, corrections stored, and the eval before and after accuracy from `eval-results.json`. If a number is missing, hide it rather than show a placeholder.
+
+## Demo beat (adds about 20 seconds)
+Before the demo, log in as a second user, type a phrase like "I'd like some tech exposure", switch it from Hard rule to Preference, and repeat once. In the demo, type a similar phrase: the card shows "Learned from 2 earlier corrections" and is already a Preference. Then point at the correction rate and the eval before and after numbers.
+
+## Pitch line
+"It doesn't need retraining. Every correction is stored and fed back, so it gets your meaning right first time, and we measure that: here is the correction rate and the before and after accuracy."
