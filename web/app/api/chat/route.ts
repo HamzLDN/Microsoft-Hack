@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { AGENTS } from "@/lib/ai/analysts";
-import { GLOSSARY, lookup } from "@/lib/ai/glossary";
+import { lookup } from "@/lib/ai/glossary";
 import { allowedNumbers, extractNumbers, numberSupported, stripDashes } from "@/lib/ai/guardrails";
 import { callText, llmConfigured } from "@/lib/ai/llm";
+import { answerHelpChat } from "@/lib/mcp/helpChat";
 import { currentUser } from "@/lib/server/auth";
 import { db, save } from "@/lib/server/db";
 import type { AgentName, Evidence } from "@/lib/types";
@@ -31,17 +32,11 @@ export async function POST(req: Request) {
   const q = messages[messages.length - 1]?.content ?? "";
 
   if (mode === "help") {
-    const local = lookup(q);
-    if (!llmConfigured()) {
-      const text = local ? `**${Object.keys(GLOSSARY).find((k) => GLOSSARY[k] === local)}**: ${local}` : "I can explain any metric or term on screen. Try asking about volatility, bad year loss, or the score.";
-      return reply({ reply: text }, { mode, question: q, reply: text, offline: true });
-    }
     try {
-      const sys = `You are the help assistant in Mandate, an investing app for individuals. Explain terms and what is on screen. Use this glossary as the source of truth:\n${Object.entries(GLOSSARY).map(([k, v]) => `${k}: ${v}`).join("\n")}\nWhat the user is looking at: ${context}\nNever give personal financial advice. ${STYLE}`;
-      const r = await callText([{ role: "system", content: sys }, ...messages.slice(-6)]);
-      return reply({ reply: stripDashes(r.text) }, { mode, question: q, reply: stripDashes(r.text), model: r.model });
+      const text = stripDashes(await answerHelpChat(q, context, messages));
+      return reply({ reply: text }, { mode, question: q, reply: text, offline: !llmConfigured() });
     } catch {
-      const text = local ?? "I couldn't reach the AI just now. Tap the info icon next to any metric for its meaning.";
+      const text = "I couldn't reach the AI or data service just now. Check that the data service is running on port 5001, or ask about a metric like **volatility**.";
       return reply({ reply: text }, { mode, question: q, reply: text, offline: true });
     }
   }
