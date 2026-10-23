@@ -1,0 +1,11 @@
+.env
+.env.local
+node_modules/
+.next/
+*.db
+*.db-journal
+__pycache__/
+.venv/
+.pytest_cache/
+data-service/cache/
+.DS_Store
