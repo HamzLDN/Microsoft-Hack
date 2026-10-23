@@ -201,6 +201,12 @@ Cut order if behind: Compare, live quote polling, weight editing, login (fall ba
 
 ---
 
+## LEARNING FROM USER REFINEMENTS
+
+See `docs/prompts/addendum-learning.md` (Agents B and C). Corrections to rules and swipes are stored and fed back at run time: exact phrase overrides, similar phrase few-shot examples, and personal score weight adjustments. Accuracy is measured with the correction rate and a before and after eval. No model training is claimed.
+
+---
+
 ## HOW THE AI ANALYSTS RUN (for the pitch and Q&A)
 
 1. The user opens a stock. Next.js asks Flask for the evidence pack: every number with an id, source and date, from SEC, Finnhub, yfinance and FRED.
