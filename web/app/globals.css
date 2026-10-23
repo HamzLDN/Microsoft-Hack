@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { background: #FBFCFD; color: #1B2733; }
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-image: radial-gradient(rgba(47,127,193,.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.num { font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.paper { @apply bg-card border border-line rounded-xl; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 font-semibold text-white transition hover:brightness-110 disabled:opacity-50; }
+.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-card px-4 py-2.5 font-semibold text-ink transition hover:bg-sky; }
+.chip { @apply rounded-full border border-line bg-card px-3 py-1 text-sm transition hover:bg-sky; }
+.chip-on { @apply border-accent bg-baby text-accent; }
+.label { @apply text-xs font-semibold uppercase tracking-wider text-muted; }
+:focus-visible { outline: 2px solid #2F7FC1; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

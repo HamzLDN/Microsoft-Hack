@@ -44,8 +44,9 @@ def _bond_mix(horizon: float):
     return {"SHY": 0.5, "BND": 0.3, "TIP": 0.2} if horizon < 5 else {"BND": 0.5, "TIP": 0.25, "SHY": 0.25}
 
 
-def _equity_weights(scored: List[dict], stock_amt: float, cap_amt: float) -> Dict[str, float]:
-    w = {c["ticker"]: max(c["score"]["total"], 1) ** 2 for c in scored}
+def _equity_weights(scored: List[dict], stock_amt: float, cap_amt: float, floor: float = 1) -> Dict[str, float]:
+    """floor lifts companies the client added themselves to at least the lowest score the engine chose."""
+    w = {c["ticker"]: max(c["score"]["total"], floor if c.get("forced") else 1, 1) ** 2 for c in scored}
     amounts = {t: 0.0 for t in w}
     remaining, free = stock_amt, set(w)
     while remaining > 1 and free:
@@ -133,6 +134,8 @@ def build(snaps: Dict[str, dict], rules: List[dict], horizon: float = 9, risk: f
     n = 8 + round((risk - 1) / 9 * 4)
     eligible = sorted([c for c in cands if not c["hardFail"] and overrides.get(c["ticker"]) != "out"], key=lambda c: -c["score"]["total"])
     forced = [c for c in eligible if overrides.get(c["ticker"]) == "in"]
+    for c in forced:
+        c["forced"] = True
     MAX_FUNDS = 2  # keep the recommendation mostly companies; funds stay available as alternatives
     ranked, funds = [], 0
     for c in eligible:
@@ -154,7 +157,8 @@ def build(snaps: Dict[str, dict], rules: List[dict], horizon: float = 9, risk: f
         while k * cap_amt < stock_amt and k < len(eligible):  # not enough room under the cap: add more companies
             k += 1
         chosen = picks if k == len(picks) else picks + [c for c in eligible if c not in picks][: k - len(picks)]
-        eq = _equity_weights(chosen, stock_amt, cap_amt)
+        floor = min((c["score"]["total"] for c in chosen if not c.get("forced")), default=1)
+        eq = _equity_weights(chosen, stock_amt, cap_amt, floor)
         cash_pct = 5.0 if horizon < 5 else 0.0
         bond_amt = amount - stock_amt - amount * cash_pct / 100
         bonds = {t: bond_amt * w for t, w in _bond_mix(horizon).items() if t in snaps}
@@ -185,6 +189,8 @@ def build(snaps: Dict[str, dict], rules: List[dict], horizon: float = 9, risk: f
             return f"Only if you remove {' and '.join(c['hardFail'])}"
         if overrides.get(c["ticker"]) == "out":
             return "You dropped it. Swipe it back in to add it"
+        if c["snap"]["type"] == "etf" and c["score"]["total"] >= cutoff:
+            return "Swipe it in to swap it for a company"
         trial = {t: v * (1 - smallest / amount) for t, v in rounded.items()}
         trial[c["ticker"]] = smallest
         new_loss = M.bad_year_loss(_cov_vol(trial, hist, kinds), amount)
@@ -204,6 +210,8 @@ def build(snaps: Dict[str, dict], rules: List[dict], horizon: float = 9, risk: f
             reason = f"Fails {failed['ruleId']}: {failed['detail']}"
         elif overrides.get(t) == "out":
             reason = "Dropped by you"
+        elif s["type"] == "etf" and c["score"]["total"] >= cutoff:
+            reason = f"Fund limit: at most {MAX_FUNDS} broad funds, so most of your money goes into companies (score {c['score']['total']:.0f})"
         else:
             reason = f"Ranked below the companies chosen (score {c['score']['total']:.0f}, cut off {cutoff:.0f})"
         out_cands.append({"ticker": t, "name": s["name"], "sector": s["sector"], "type": s["type"], "status": "included" if included else "excluded",

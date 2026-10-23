@@ -9,3 +9,9 @@ __pycache__/
 .pytest_cache/
 data-service/cache/
 .DS_Store
+
+# web
+web/data/*.json
+web/.next/
+web/tsconfig.tsbuildinfo
+web/eval-results.json

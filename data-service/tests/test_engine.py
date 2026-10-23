@@ -96,3 +96,15 @@ def test_at_most_two_equity_funds_unless_forced(snaps, demo_rules):
     p = build(s, demo_rules)
     funds = [h for h in p["holdings"] if h["ticker"] in {f"F{i}" for i in range(5)}]
     assert len(funds) <= 2
+
+
+def test_swiped_in_company_gets_a_real_share(snaps, demo_rules):
+    base = build(snaps, demo_rules)
+    out = [c for c in base["considered"] if c["status"] == "excluded" and c["mainReason"].startswith("Ranked")]
+    if not out:
+        return
+    t = out[-1]["ticker"]
+    q = build(snaps, demo_rules, overrides={t: "in"})
+    stocks = [h["amount"] for h in q["holdings"] if h["ticker"] in snaps and snaps[h["ticker"]]["type"] == "stock" and h["ticker"] != t]
+    added = next(h["amount"] for h in q["holdings"] if h["ticker"] == t)
+    assert added >= min(stocks) - 100

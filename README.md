@@ -11,46 +11,49 @@ Microsoft x LSEG London Hackathon 2026. Educational project. Not financial advic
 | Folder | Owner | What |
 |---|---|---|
 | `data-service/` | Agent A | Flask (Python 3.11) on port 5001: market data, caching, metrics, scoring, portfolio engine |
-| `web/` (API routes, `lib/ai`, `lib/db`, `prisma`) | Agent B | Next.js API: login, saved preferences, preference parsing, three AI analysts, chat |
+| `web/` (`app/api`, `lib`) | Agent B | Next.js API: login, saved preferences, preference parsing, three AI analysts, chat, learning |
 | `web/` (pages, `components`) | Agent C | Next.js frontend |
 | `shared/` | Everyone, change only together | Data contract (`contract.ts`, `contract.py`) and mock JSON |
 | `docs/` | | Master plan, agent prompts, UI mock |
 
-## Before the agents start (5 minutes)
-
-1. Install Node 20+ and Python 3.10+ on each machine that runs an agent.
-2. Get API keys and fill `.env` from `.env.example`:
-   * Finnhub: free key at finnhub.io
-   * FRED: free key at fred.stlouisfed.org
-   * LLM: the organiser-provided key goes in `ORGANISER_API_KEY`, with its endpoint and model name from the organisers. Share it by direct message only, never in the repo. Azure OpenAI or OpenAI are optional fallbacks.
-   * SEC EDGAR: no key, but set a contact email for the User-Agent header
-3. Everyone pulls `main`. Agent B creates `web/` first (within 5 minutes) so Agent C does not create a second Next.js app.
-4. Paste the matching file from `docs/prompts/` into each agent.
-
-## Run
+## Run it
 
 ```bash
-# data service
-cd data-service && python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt && python app.py      # http://localhost:5001
-
-# web app
-cd web && npm install && npx prisma db push && npm run dev   # http://localhost:3000
+./start.sh            # data service on :5001, web app on http://localhost:3000
+./start.sh --reset    # same, but wipes saved users, preferences and learning first (do this before the demo)
 ```
+
+Demo login: `demo@mandate.app` / `demo1234` (a seeded test account). Anyone can also create an account.
+
+Needs Python 3.11 and Node 20. On the hackathon Mac, Node lives in `~/.local/node` and `start.sh` adds it to the PATH.
+
+## Keys (all optional, in the repo root `.env`, see `.env.example`)
+
+| Key | Switches on | Without it |
+|---|---|---|
+| `ORGANISER_API_KEY`, `ORGANISER_API_ENDPOINT`, `ORGANISER_MODEL` | AI analysts, AI preference parsing, AI chat | Keyword parser and analysts built directly from the data; still fully working |
+| `FINNHUB_API_KEY` | Live quotes, Finnhub ratios and news | yfinance |
+| `SEC_USER_AGENT` | Annual revenue and free cash flow from 10-K filings | yfinance |
+| `FRED_API_KEY` | Inflation and interest rates for the markets analyst | Left out |
+
+Check the AI key with `http://localhost:3000/api/llm-health`, and data sources with `http://localhost:5001/health`.
 
 ## Tests
 
 ```bash
-cd data-service && pytest
-cd web && npm test          # unit tests, LLM mocked
-cd web && npm run eval      # prompt accuracy against the real LLM, writes eval-results.json
+cd data-service && .venv/bin/python -m pytest -q   # 28 tests: maths, scoring, rules, engine, API, cache
+cd web && npm test                                  # 22 tests: guardrails, parser, learning, decision, no dashes in copy
+cd web && npm run eval                              # rule accuracy before and after learning, written to eval-results.json
 ```
 
-## Git rules for the three agents
+## How the AI stays accurate
 
-* Only edit files in your own area. `shared/` changes are announced to the team first.
-* Commit small and often. `git pull --rebase` before every push.
-* Never commit `.env`.
+1. The data service builds an evidence pack per company: every number with an id, source and date.
+2. Three analysts (fundamentals, markets and news, client fit) each see only their slice and must cite ids.
+3. Code checks every answer: valid shape, real ids, every number matches the evidence within 1%, at least one pro and one con, no dashes. One retry with the errors listed, then a summary built directly from the data, labelled as such.
+4. Code makes the decision: hard rules always win, analysts can move the score by at most 5 points and can flag disagreement.
+5. Follow up questions use the same evidence and the same number check; if a number can't be confirmed the answer says so.
+6. Learning without training: corrections to rules are remembered and applied (exact phrase confirmed twice) or used as examples; swipes shift personal score weights. The trust panel shows the live correction rate, numbers checked, numbers blocked and the eval before and after accuracy.
 
 ## Demo
 
