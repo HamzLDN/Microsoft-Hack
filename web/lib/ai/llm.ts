@@ -4,19 +4,26 @@ import { claudeComplete, claudeConfigured, modelFor } from "./claude";
 
 type Provider = { name: string; model: string; client: OpenAI };
 
+const HACKATHON_ENDPOINT = "https://app-uoaihack2ix6ak.azurewebsites.net";
+const HACKATHON_MODEL = "gpt-6.1-sol";
+const HACKATHON_API_VERSION = "2024-12-01-preview";
+
 function providers(): Provider[] {
   const e = process.env;
   const list: Provider[] = [];
   const order = [(e.LLM_PROVIDER || "organiser").toLowerCase(), "organiser", "azure", "openai"];
   for (const name of Array.from(new Set(order))) {
-    if (name === "organiser" && e.ORGANISER_API_KEY && e.ORGANISER_API_ENDPOINT) {
-      const azure = /openai\.azure\.com|cognitiveservices\.azure\.com/.test(e.ORGANISER_API_ENDPOINT);
+    if (name === "organiser" && e.ORGANISER_API_KEY) {
+      // Defaults follow the hackathon's example project: Azure OpenAI client, this gateway, gpt-6.1-sol
+      const endpoint = e.ORGANISER_API_ENDPOINT || HACKATHON_ENDPOINT;
+      const azure = Boolean(e.ORGANISER_API_VERSION) || /azure\.com|azurewebsites\.net/.test(endpoint);
       list.push({
         name: "organiser",
-        model: e.ORGANISER_MODEL || "gpt-4o-mini",
+        model: e.ORGANISER_MODEL || HACKATHON_MODEL,
+        // No fixed deployment: the client routes by each request's model, so analysts can use different models
         client: azure
-          ? new AzureOpenAI({ endpoint: e.ORGANISER_API_ENDPOINT, apiKey: e.ORGANISER_API_KEY, deployment: e.ORGANISER_MODEL, apiVersion: "2024-10-21" })
-          : new OpenAI({ baseURL: e.ORGANISER_API_ENDPOINT, apiKey: e.ORGANISER_API_KEY }),
+          ? new AzureOpenAI({ endpoint, apiKey: e.ORGANISER_API_KEY, apiVersion: e.ORGANISER_API_VERSION || HACKATHON_API_VERSION })
+          : new OpenAI({ baseURL: endpoint, apiKey: e.ORGANISER_API_KEY }),
       });
     }
     if (name === "azure" && e.AZURE_OPENAI_API_KEY && e.AZURE_OPENAI_ENDPOINT && e.AZURE_OPENAI_DEPLOYMENT) {
@@ -51,8 +58,8 @@ async function complete(messages: OpenAI.ChatCompletionMessageParam[], json: boo
     // Optional per-analyst model, e.g. ANALYST_MODEL_MARKETS, so each analyst can run on a different model
     const model = (opts.agent && process.env[`ANALYST_MODEL_${opts.agent.toUpperCase()}`]) || p.model;
     // Some models reject temperature or JSON mode; retry once without whatever they refused
-    let extras: Record<string, unknown> = { temperature: 0, ...(json ? { response_format: { type: "json_object" } } : {}) };
-    for (let attempt = 0; attempt < 3; attempt++) {
+    let extras: Record<string, unknown> = { temperature: 0, max_completion_tokens: 16000, ...(json ? { response_format: { type: "json_object" } } : {}) };
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
         const res = await p.client.chat.completions.create({ model, messages, ...extras } as OpenAI.ChatCompletionCreateParamsNonStreaming, { timeout: Math.max(timeoutMs, 30000), maxRetries: 0 });
         const text = res.choices[0]?.message?.content ?? "";
@@ -62,6 +69,7 @@ async function complete(messages: OpenAI.ChatCompletionMessageParam[], json: boo
         const msg = (err as Error).message;
         if (/temperature/i.test(msg) && "temperature" in extras) { const { temperature, ...rest } = extras; extras = rest; continue; }
         if (/response_format|json_object/i.test(msg) && "response_format" in extras) { const { response_format, ...rest } = extras; extras = rest; continue; }
+        if (/max_completion_tokens/i.test(msg) && "max_completion_tokens" in extras) { const { max_completion_tokens, ...rest } = extras; extras = rest; continue; }
         errors.push(`${p.name}: ${msg}`);
         break;
       }

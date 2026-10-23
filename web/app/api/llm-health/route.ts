@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { callJSON, llmConfigured } from "@/lib/ai/llm";
 
 export async function GET() {
-  if (!llmConfigured()) return NextResponse.json({ ok: false, reason: "No LLM configured. For Claude Opus 5.5 set ANTHROPIC_API_KEY (or ANTHROPIC_FOUNDRY_API_KEY with ANTHROPIC_FOUNDRY_RESOURCE) in .env." });
+  if (!llmConfigured()) return NextResponse.json({ ok: false, reason: "No LLM configured. Paste the hackathon key after ORGANISER_API_KEY= in .env (or set a Claude key) and restart." });
   const t = Date.now();
   try {
     const r = await callJSON('Reply with JSON {"ok": true}', "ping", 15000);
