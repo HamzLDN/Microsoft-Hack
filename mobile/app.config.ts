@@ -14,7 +14,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     },
   },
-  plugins: ["expo-font"],
+  plugins: [
+    "expo-font",
+    [
+      "expo-build-properties",
+      {
+        android: {
+          usesCleartextTraffic: true,
+        },
+      },
+    ],
+  ],
   extra: {
     ...config.extra,
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",

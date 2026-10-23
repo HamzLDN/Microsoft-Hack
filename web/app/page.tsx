@@ -1,16 +1,22 @@
 "use client";
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
+import { Dashboard, type BoardView } from "@/components/Dashboard";
 import { HelpChat } from "@/components/HelpChat";
-import { AboutScreen, AuthScreen, LoadingScreen, PrefsScreen, ResumeScreen } from "@/components/Onboarding";
-import { ChallengeScreen, ConsideredScreen, PortfolioScreen, UnderstoodScreen } from "@/components/Results";
+import { AboutScreen, AuthScreen, LoadingScreen, PrefsScreen } from "@/components/Onboarding";
+import { UnderstoodScreen } from "@/components/Results";
 import { StockDrawer } from "@/components/StockDrawer";
 import { api, money, Toast } from "@/components/ui";
 import { METRIC_TERMS } from "@/lib/ai/glossary";
-import { DEFAULT_FORM, type AppRule, type Candidate, type FormInput, type Portfolio } from "@/lib/types";
+import { DEFAULT_FORM, savingsOf, type AppRule, type Candidate, type FormInput, type Portfolio } from "@/lib/types";
 
-type Step = "boot" | "auth" | "resume" | "about" | "prefs" | "loading" | "understood" | "building" | "portfolio" | "considered" | "challenge";
-const STEPS: [string, Step[]][] = [["About you", ["about"]], ["Preferences", ["prefs", "loading"]], ["Understood", ["understood"]], ["Portfolio", ["building", "portfolio"]], ["Considered", ["considered"]], ["Challenge", ["challenge"]]];
+type Step = "boot" | "auth" | "about" | "prefs" | "reading" | "understood" | "opening" | "portfolio";
+type SavedPrefs = { savedAt: string; data: { form: FormInput; metrics?: string[]; rules?: AppRule[]; onboarded?: boolean } };
+const ONBOARD: { label: string; steps: Step[]; index: 0 | 1 | 2 }[] = [
+  { label: "About you", steps: ["about"], index: 0 },
+  { label: "Preferences", steps: ["prefs"], index: 1 },
+  { label: "Your rules", steps: ["reading", "understood"], index: 2 },
+];
 const ALL_METRICS = Object.keys(METRIC_TERMS);
 const DEFAULT_METRICS = ["price", "ret1y", "vol", "dd", "pe", "divYield", "revGrowth", "fcfMargin", "beta"];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -18,7 +24,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export default function Home() {
   const [step, setStep] = useState<Step>("boot");
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
-  const [saved, setSaved] = useState<{ savedAt: string; data: { form: FormInput; metrics?: string[] } } | null>(null);
+  const [onboarded, setOnboarded] = useState(false);
   const [form, setForm] = useState<FormInput>(DEFAULT_FORM);
   const [rules, setRules] = useState<AppRule[]>([]);
   const [p, setP] = useState<Portfolio | null>(null);
@@ -33,21 +39,29 @@ export default function Home() {
   const [shown, setShown] = useState<string[]>(DEFAULT_METRICS);
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState("");
+  const [board, setBoard] = useState<BoardView>("overview");
   const [committee, setCommittee] = useState<{ status: "idle" | "running" | "done" | "failed"; changes?: any[]; items?: any[]; sessionId?: string; adjustments?: Record<string, number>; reviewed?: number }>({ status: "idle" });
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 3800); };
   const ask = (q: string) => setHelp({ open: true, prefill: `${q} ` + "​".repeat(Math.random() * 5) });
-  const client = `Age ${form.age}, retiring at ${form.retireAge}, investing $100,000 for ${form.horizon} years. Goal: ${form.purpose}. Rules: ${rules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
+  const client = `Age ${form.age}, retiring at ${form.retireAge}, investing $${savingsOf(form).toLocaleString("en-US")} for ${form.horizon} years. Goal: ${form.purpose}. Rules: ${rules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
 
   useEffect(() => {
+    let cancelled = false;
     try { const m = JSON.parse(localStorage.getItem("mandate-metrics") || "null"); if (Array.isArray(m)) setShown(m); } catch {}
     api("/api/auth").then(async ({ user }) => {
+      if (cancelled) return;
       if (!user) return setStep("auth");
       setUser(user);
-      const { latest } = await api("/api/preferences").catch(() => ({ latest: null }));
-      setSaved(latest);
-      setStep(latest ? "resume" : "about");
-    }).catch(() => setStep("auth"));
+      const { latest } = await api<{ latest: SavedPrefs | null }>("/api/preferences").catch(() => ({ latest: null }));
+      if (cancelled) return;
+      if (latest?.data?.form) {
+        if (latest.data.metrics) setShown(latest.data.metrics);
+        setOnboarded(true);
+        void openDashboard(latest.data.form, latest.data.rules, true, () => cancelled);
+      } else setStep("about");
+    }).catch(() => { if (!cancelled) setStep("auth"); });
+    return () => { cancelled = true; };
   }, []);
 
   const animateLines = async (list: string[], work: Promise<unknown>) => {
@@ -56,45 +70,83 @@ export default function Home() {
     await work;
   };
 
-  const parse = async (f = form) => {
-    setError(""); setStep("loading");
+  const reviewRules = async (f = form) => {
+    setError("");
+    setForm(f);
+    setStep("reading");
     const words = f.freeText.trim() ? f.freeText.trim().split(/\s+/).length : 0;
     const work = api("/api/parse", { form: f });
-    await animateLines(["Read your form", `Read ${words} words of your own text`, "Matched your words to rules", "Checked earlier corrections", "Marked hard rules and preferences"], work);
+    await animateLines(["Read your preferences", `Read ${words} words of your own text`, "Matched your words to rules"], work);
     const r = await work.catch((e) => { setError(e.message); return null; });
     if (!r) return setStep("prefs");
-    setRules(r.rules);
-    api("/api/preferences", { form: f, metrics: shown }, "PUT").catch(() => null);
+    setRules(r.rules as AppRule[]);
     setStep("understood");
   };
 
+  const openDashboard = async (f: FormInput, knownRules?: AppRule[], quiet = false, stopped: () => boolean = () => false) => {
+    setError("");
+    setForm(f);
+    setStep("opening");
+    if (knownRules) setLines(["Building from the rules you kept"]);
+    let nextRules = knownRules;
+    if (knownRules === undefined) {
+      const words = f.freeText.trim() ? f.freeText.trim().split(/\s+/).length : 0;
+      const work = api("/api/parse", { form: f });
+      await animateLines(["Read your preferences", `Read ${words} words of your own text`, "Matched your words to rules"], work);
+      if (stopped()) return;
+      const r = await work.catch((e) => { setError(e.message); return null; });
+      if (stopped()) return;
+      if (!r) return setStep("prefs");
+      nextRules = r.rules as AppRule[];
+    }
+    if (stopped() || !nextRules) return;
+    setRules(nextRules);
+    setOverrides({});
+    setCommittee({ status: "idle" });
+    const portfolio = await api<Portfolio>("/api/portfolio", { rules: nextRules, horizon: f.horizon, risk: f.risk, maxHolding: f.maxHolding, overrides: {}, weights, amount: savingsOf(f) }).catch((e) => { setError(e.message); return null; });
+    if (stopped()) return;
+    if (!portfolio) return setStep(knownRules === undefined ? "prefs" : "understood");
+    setP(portfolio);
+    setOnboarded(true);
+    api("/api/preferences", { form: f, metrics: shown, rules: nextRules, onboarded: true }, "PUT").catch(() => null);
+    setStep("portfolio");
+    void runCommittee(nextRules, f, quiet);
+  };
+
   const build = useCallback(async (ov = overrides, w = weights) => {
-    const res = await api<Portfolio & { error?: string }>("/api/portfolio", { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides: ov, weights: w, adjustments: committee.adjustments });
+    const res = await api<Portfolio & { error?: string }>("/api/portfolio", { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides: ov, weights: w, adjustments: committee.adjustments, amount: savingsOf(form) });
     setP(res);
     api("/api/learning").then(setTrust).catch(() => null);
     return res;
   }, [rules, form, overrides, weights, committee.adjustments]);
 
-  const runCommittee = async () => {
+  const runCommittee = async (nextRules?: AppRule[], f?: FormInput, quiet = false) => {
+    const useRules = nextRules ?? rules;
+    const useForm = f ?? form;
+    const brief = `Age ${useForm.age}, retiring at ${useForm.retireAge}, investing $${savingsOf(useForm).toLocaleString("en-US")} for ${useForm.horizon} years. Goal: ${useForm.purpose}. Rules: ${useRules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
     setCommittee({ status: "running" });
     try {
-      const r = await api("/api/committee", { request: { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides, weights }, client });
+      const r = await api("/api/committee", { request: { rules: useRules, horizon: useForm.horizon, risk: useForm.risk, maxHolding: useForm.maxHolding, overrides, weights, amount: savingsOf(useForm) }, client: brief });
       setP(r.portfolio);
       setCommittee({ status: "done", changes: r.changes, items: r.items, sessionId: r.sessionId, adjustments: r.adjustments, reviewed: r.items.length });
-      flash(r.changes.length ? `The committee changed **${r.changes.length}** holdings after discussing them.` : "The committee reviewed every holding and kept the portfolio as it was.");
+      if (!quiet) flash(r.changes.length ? `The committee changed **${r.changes.length}** holdings after discussing them.` : "The committee reviewed every holding and kept the portfolio as it was.");
     } catch {
       setCommittee({ status: "failed" });
     }
   };
 
-  const buildFirst = async () => {
-    setError(""); setStep("building"); setOverrides({});
-    setCommittee({ status: "idle" });
-    const work = api<Portfolio>("/api/portfolio", { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides: {}, weights }).then((res) => { setP(res); return res; });
-    await animateLines([`Screening 84 companies and funds against ${rules.filter((r) => r.kind === "hard").length} hard rules`, "Scoring growth, profit, stability, income, value and news", `Fitting the mix to a ${form.horizon} year horizon`, "Checking the bad year loss limit", "Writing pros and cons for every company"], work);
-    const r = await work.catch((e) => { setError(e.message); return null; });
-    setStep(r ? "portfolio" : "understood");
-    if (r) runCommittee();
+  const afterAuth = async (u: { id: string; email: string }) => {
+    setUser(u);
+    const { latest } = await api<{ latest: SavedPrefs | null }>("/api/preferences").catch(() => ({ latest: null }));
+    if (latest?.data?.form) {
+      if (latest.data.metrics) setShown(latest.data.metrics);
+      setOnboarded(true);
+      void openDashboard(latest.data.form, latest.data.rules, true);
+    } else {
+      setOnboarded(false);
+      setForm(DEFAULT_FORM);
+      setStep("about");
+    }
   };
 
   const onSwipe = async (c: Candidate, own: boolean) => {
@@ -118,22 +170,30 @@ export default function Home() {
     flash("Rebuilt with your scoring weights.");
   };
 
-  const logout = async () => { await api("/api/auth", { action: "logout" }); setUser(null); setStep("auth"); };
+  const logout = async () => { await api("/api/auth", { action: "logout" }); setUser(null); setOnboarded(false); setP(null); setStep("auth"); };
   const toggleMetric = (k: string) => {
     const next = shown.includes(k) ? shown.filter((x) => x !== k) : [...shown, k];
     setShown(next);
     try { localStorage.setItem("mandate-metrics", JSON.stringify(next)); } catch {}
   };
-  const activeIdx = STEPS.findIndex(([, s]) => s.includes(step));
+  const onboard = ONBOARD.find((s) => s.steps.includes(step));
+  const portfolioContext = p
+    ? `Bad year loss ${p.badYearLoss}. Typical year ${p.typicalRange[0]} to ${p.typicalRange[1]}. Split ${p.split.stocks}% shares, ${p.split.bonds}% bonds, ${p.split.cash}% cash. Holdings: ${p.holdings.map((h) => `${h.name} (${h.ticker}) $${Math.round(h.amount)}`).join(", ")}. Rules: ${p.ruleSummary.map((s) => `${s.ruleId} ${s.status}`).join("; ")}.`
+    : "";
+  const chatContext = `Screen: ${step}. ${drawer ? `Looking at ${drawer}.` : ""} ${portfolioContext}`;
 
   return (
-    <main className="min-h-screen">
+    <div className="flex min-h-screen">
+      <div className="flex min-w-0 flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-paper/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <span className="font-serif text-2xl font-semibold">Mandate<span className="text-accent">.</span></span>
-          {user && activeIdx >= 0 && (
-            <nav className="hidden flex-1 justify-center gap-1 md:flex">
-              {STEPS.map(([label], i) => <span key={label} className={`rounded-full px-3 py-1 text-xs ${i === activeIdx ? "bg-baby font-semibold text-accent" : "text-muted"}`}>{label}</span>)}
+          <span className="font-serif text-2xl font-semibold tracking-wide">BETTERVEST</span>
+          {user && step === "portfolio" && <span className="hidden rounded-full bg-baby px-3 py-1 text-xs font-semibold text-accent md:inline">Dashboard</span>}
+          {user && !onboarded && onboard && (
+            <nav className="hidden flex-1 justify-center gap-1 md:flex" aria-label="Setup">
+              {ONBOARD.map((s) => (
+                <span key={s.label} className={`rounded-full px-3 py-1 text-xs ${s.index === onboard.index ? "bg-baby font-semibold text-accent ring-2 ring-accent" : s.index < onboard.index ? "bg-sky font-semibold text-ink" : "text-muted"}`}>{s.label}</span>
+              ))}
             </nav>
           )}
           {user && (
@@ -153,27 +213,34 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         {error && <p className="mb-4 rounded-lg bg-badsoft p-3 text-sm text-bad">{error}</p>}
         <AnimatePresence mode="wait">
-          {step === "auth" && <AuthScreen key="a" onDone={async (u) => { setUser(u); const { latest } = await api("/api/preferences").catch(() => ({ latest: null })); setSaved(latest); setStep(latest ? "resume" : "about"); }} />}
-          {step === "resume" && saved && <ResumeScreen key="r" savedAt={saved.savedAt} onContinue={() => { setForm(saved.data.form); if (saved.data.metrics) setShown(saved.data.metrics); parse(saved.data.form); }} onNew={() => { setForm(DEFAULT_FORM); setStep("about"); }} />}
+          {step === "auth" && <AuthScreen key="a" onDone={afterAuth} />}
           {step === "about" && <AboutScreen key="ab" form={form} setForm={setForm} onNext={() => setStep("prefs")} />}
-          {step === "prefs" && <PrefsScreen key="pr" form={form} setForm={setForm} onBack={() => setStep("about")} onNext={() => parse()} onAsk={ask} />}
-          {step === "loading" && <LoadingScreen key="l" title="Reading your preferences" lines={lines} />}
-          {step === "understood" && <UnderstoodScreen key="u" rules={rules} setRules={setRules} onBack={() => setStep("prefs")} onNext={buildFirst} onAsk={ask} />}
-          {step === "building" && <LoadingScreen key="b" title="Building your portfolio" lines={lines} />}
-          {step === "portfolio" && p && <PortfolioScreen key="p" p={p} rules={rules} trust={trust} committee={committee} onRerunCommittee={runCommittee} onOpen={setDrawer} onConsidered={() => setStep("considered")} onChallenge={() => setStep("challenge")} onEdit={() => setStep("prefs")} onAsk={ask}
-            onResetLearning={async () => { await api("/api/learning", undefined, "DELETE"); setWeights(undefined); await build(overrides, undefined); }} />}
-          {step === "considered" && p && <ConsideredScreen key="c" p={p} rules={rules} onOpen={setDrawer} onBack={() => setStep("portfolio")} onChallenge={() => setStep("challenge")} />}
-          {step === "challenge" && p && <ChallengeScreen key="ch" p={p} onDecide={onSwipe} onOpen={setDrawer} onDone={() => setStep("portfolio")} learnedNote={learnedNote} />}
+          {step === "prefs" && <PrefsScreen key="pr" setup={!onboarded} form={form} setForm={setForm} onBack={() => (onboarded && p ? setStep("portfolio") : setStep("about"))} onNext={() => reviewRules(form)} onAsk={ask} />}
+          {step === "reading" && <LoadingScreen key="rd" title="Reading what you asked for" lines={lines} step={2} />}
+          {step === "understood" && <UnderstoodScreen key="u" rules={rules} setRules={setRules} onBack={() => setStep("prefs")} onNext={() => openDashboard(form, rules)} onAsk={ask} />}
+          {step === "opening" && <LoadingScreen key="o" title="Opening your dashboard" lines={lines} step={2} />}
+          {step === "portfolio" && p && <Dashboard key="p" p={p} rules={rules} trust={trust} committee={committee} onRerunCommittee={() => runCommittee()} onResetLearning={async () => { await api("/api/learning", undefined, "DELETE"); setWeights(undefined); await build(overrides, undefined); }} onOpen={setDrawer} onEdit={() => setStep("about")} onAsk={ask} onDecide={onSwipe} learnedNote={learnedNote} view={board} onView={setBoard} />}
         </AnimatePresence>
         {step !== "auth" && step !== "boot" && <p className="mt-12 text-center text-xs text-muted">Educational hackathon project. Not financial advice. · <a href="/backstage" target="_blank" className="underline hover:text-accent">Backstage</a></p>}
+      </main>
       </div>
 
       <StockDrawer ticker={drawer} p={p} rules={rules} client={client} shown={shown} committeeItem={committee.items?.find((x) => x.ticker === drawer)} onClose={() => setDrawer(null)} onAsk={ask} onReweight={reweight} />
-      {user && <HelpChat open={help.open} setOpen={(o) => setHelp({ ...help, open: o })} prefill={help.prefill} context={`Screen: ${step}. ${drawer ? `Looking at ${drawer}.` : ""} ${p ? `Portfolio bad year loss ${p.badYearLoss}, split ${JSON.stringify(p.split)}.` : ""}`} />}
+      {user && (
+        <>
+          <button type="button" onClick={() => setHelp((h) => ({ ...h, open: !h.open }))} className="fixed bottom-5 right-5 z-50 rounded-full bg-accent px-5 py-3 font-semibold text-white shadow-paper">{help.open ? "Close help" : "Ask"}</button>
+          {help.open && (
+            <div className="fixed bottom-20 right-5 z-50 flex h-[min(70vh,560px)] w-[min(380px,90vw)] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-paper">
+              <p className="border-b border-line p-4 font-serif text-lg font-semibold">Help</p>
+              <HelpChat prefill={help.prefill} context={chatContext} />
+            </div>
+          )}
+        </>
+      )}
       <Toast text={toast} />
-    </main>
+    </div>
   );
 }

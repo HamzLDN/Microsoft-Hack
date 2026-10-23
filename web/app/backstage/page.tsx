@@ -76,7 +76,7 @@ export default function Backstage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="label">Mandate · backstage</p><h1 className="font-serif text-4xl font-semibold">What the AI did</h1>
+        <div><p className="label">Bettervest · backstage</p><h1 className="font-serif text-4xl font-semibold">What the AI did</h1>
           <p className="mt-1 text-muted">Every committee discussion, every chat, and the checks that keep the AI honest. For the team and judges, not clients.</p></div>
         <p className="text-sm">{llm ? (llm.ok ? <>Model <b className="num">{llm.model}</b> via {llm.provider}</> : <span className="text-bad">AI not connected: data rules in use</span>) : "Checking model…"}</p>
       </header>

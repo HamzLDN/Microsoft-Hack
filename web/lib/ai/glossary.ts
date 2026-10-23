@@ -36,10 +36,52 @@ export const GLOSSARY: Record<string, string> = {
   "Correction rate": "How often people had to fix a rule the app understood from their words. Lower means it understands better.",
 };
 
+function editDistance(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 2) return 99;
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const saved = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = saved;
+    }
+  }
+  return row[b.length];
+}
+
+/** Exact glossary hit, or a close spelling such as "volitilty" for volatility. */
 export function lookup(term: string): string | undefined {
   const t = term.toLowerCase();
-  const key = Object.keys(GLOSSARY).find((k) => k.toLowerCase() === t) || Object.keys(GLOSSARY).find((k) => t.includes(k.toLowerCase()));
-  return key ? GLOSSARY[key] : undefined;
+  const keys = Object.keys(GLOSSARY);
+  const exact = keys.find((k) => k.toLowerCase() === t) || keys.find((k) => t.includes(k.toLowerCase()));
+  if (exact) return GLOSSARY[exact];
+  const words = t.split(/[^a-z0-9]+/).filter((w) => w.length >= 5);
+  let best: { key: string; dist: number } | null = null;
+  for (const key of keys) {
+    const target = key.toLowerCase();
+    if (target.includes(" ") || target.length < 5) continue;
+    for (const word of words) {
+      const dist = editDistance(word, target);
+      if (dist <= 2 && (!best || dist < best.dist)) best = { key, dist };
+    }
+  }
+  return best ? GLOSSARY[best.key] : undefined;
+}
+
+const EXPLAIN_AGAIN = /\b(just explain|explain that|explain it|explain this|what does that mean|please explain)\b/i;
+
+/** Definition for this question, or for an earlier message when the user says "just explain". */
+export function lookupFollowUp(question: string, earlier: string[] = []): string | undefined {
+  const direct = lookup(question);
+  if (direct) return direct;
+  if (!EXPLAIN_AGAIN.test(question)) return undefined;
+  for (let i = earlier.length - 1; i >= 0; i--) {
+    const hit = lookup(earlier[i]);
+    if (hit) return hit;
+  }
+  return undefined;
 }
 
 export const METRIC_TERMS: Record<string, string> = {

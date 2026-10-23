@@ -44,9 +44,19 @@ export function extractTickerSymbol(query: string, known?: Set<string>): string 
   const m = query.match(/\b([A-Z]{1,5}(?:-[A-Z])?)\b/g);
   if (!m) return undefined;
   const candidates = m.filter((t) => !TICKER_STOP.has(t));
-  if (known?.size) {
-    const hit = candidates.find((t) => known.has(t));
-    if (hit) return hit;
-  }
-  return candidates.length === 1 ? candidates[0] : candidates.find((t) => t.length >= 2 && t.length <= 5);
+  if (known?.size) return candidates.find((t) => known.has(t));
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
+/** A clear universe hit, several close hits, or nothing worth quoting. */
+export function confidentMatch(
+  query: string,
+  entries: UniverseEntry[],
+): { kind: "one"; entry: UniverseEntry } | { kind: "many"; entries: UniverseEntry[] } | { kind: "none" } {
+  const hits = searchUniverse(query, entries, 5);
+  if (!hits.length || hits[0].score < 8) return { kind: "none" };
+  const close = hits.filter((h) => h.score >= 8 && h.score >= hits[0].score - 2);
+  if (hits.length === 1 || hits[0].score >= (hits[1]?.score ?? 0) + 3) return { kind: "one", entry: hits[0].entry };
+  if (close.length > 1) return { kind: "many", entries: close.map((h) => h.entry) };
+  return { kind: "one", entry: hits[0].entry };
 }

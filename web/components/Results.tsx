@@ -2,6 +2,7 @@
 import { animate, motion, useMotionValue, useTransform } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import type { AppRule, Candidate, Portfolio } from "@/lib/types";
+import { OnboardingProgress } from "./Onboarding";
 import { api, Bold, Info, money, Pill, Screen, Title } from "./ui";
 
 const COLORS = ["#2F7FC1", "#5AA2DB", "#86BCE6", "#3E8E7E", "#6FB3A3", "#7A86C8", "#A39BD8", "#C48BA6", "#D2A26B", "#8FA65A", "#5E9FB8", "#B7C9D8"];
@@ -26,7 +27,8 @@ export function UnderstoodScreen({ rules, setRules, onBack, onNext, onAsk }: { r
   };
   return (
     <Screen k="understood">
-      <Title sub={<>Each line is a rule your portfolio must follow. Tap <strong>Hard rule</strong> or <strong>Preference</strong> to switch it, remove anything wrong, or add your own.</>}>Here&apos;s what we understood</Title>
+      <OnboardingProgress current={2} />
+      <Title sub={<>These came from your form and from what you wrote. Tap <strong>Requirement</strong> or <strong>Preference</strong> to switch one, or remove anything that should not apply.</>}>Here&apos;s what we understood</Title>
       <div className="grid max-w-3xl gap-2.5">
         {rules.map((r, i) => (
           <motion.div key={r.id + r.text} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="paper flex items-start gap-3 p-4">
@@ -38,7 +40,7 @@ export function UnderstoodScreen({ rules, setRules, onBack, onNext, onAsk }: { r
               {r.learnedFrom ? <span className="mt-1 inline-block"><Pill tone="blue">Learned from {r.learnedFrom} earlier corrections</Pill></span> : null}
             </div>
             <button onClick={() => toggle(i)} className={`rounded-full px-3 py-1 text-xs font-semibold ${r.kind === "hard" ? "bg-badsoft text-bad" : "bg-warnsoft text-warn"}`}>
-              {r.kind === "hard" ? "Hard rule" : "Preference"}
+              {r.kind === "hard" ? "Requirement" : "Preference"}
             </button>
             <button aria-label={`Remove ${r.id}`} className="px-1 text-muted hover:text-bad" onClick={() => remove(i)}>✕</button>
           </motion.div>
@@ -48,7 +50,7 @@ export function UnderstoodScreen({ rules, setRules, onBack, onNext, onAsk }: { r
             className="flex-1 rounded-lg border border-line bg-card p-2.5" />
           <button className="btn-ghost" onClick={add}>Add</button>
         </div>
-        <p className="text-sm text-muted">Hard rule<Info term="Hard rule" onAsk={onAsk} /> rules a company out. Preference<Info term="Preference" onAsk={onAsk} /> only changes its score.</p>
+        <p className="text-sm text-muted">Requirement<Info term="Hard rule" onAsk={onAsk} /> rules a company out. Preference<Info term="Preference" onAsk={onAsk} /> only changes its score. Remove a line if it should not be considered.</p>
       </div>
       <div className="mt-6 flex gap-3"><button className="btn-ghost" onClick={onBack}>Back</button><button className="btn" onClick={onNext}>Build my portfolio</button></div>
     </Screen>
@@ -83,7 +85,7 @@ type Trust = { correctionRate: number | null; correctionsStored: number; learned
 
 type Committee = { status: "idle" | "running" | "done" | "failed"; changes?: { ticker: string; name: string; kind: string; before: number; after: number; scoreBefore: number; scoreAfter: number; reason: string; speaker: string }[]; items?: { ticker: string; debate: { finalStances: Record<string, string>; shifts: unknown[] } }[]; sessionId?: string; reviewed?: number };
 
-function CommitteeCard({ c, onOpen, onRerun }: { c: Committee; onOpen: (t: string) => void; onRerun: () => void }) {
+export function CommitteeCard({ c, onOpen, onRerun }: { c: Committee; onOpen: (t: string) => void; onRerun: () => void }) {
   const verb: Record<string, string> = { added: "Added", dropped: "Dropped", increased: "Increased", decreased: "Trimmed" };
   return (
     <div className="paper border-accent/40 p-5 shadow-paper">
@@ -181,11 +183,18 @@ export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, o
   );
 }
 
-export function ConsideredScreen({ p, rules, onOpen, onBack, onChallenge }: { p: Portfolio; rules: AppRule[]; onOpen: (t: string) => void; onBack: () => void; onChallenge: () => void }) {
+export function ConsideredScreen({ p, rules, onOpen, onBack, onChallenge, embedded }: { p: Portfolio; rules: AppRule[]; onOpen: (t: string) => void; onBack: () => void; onChallenge: () => void; embedded?: boolean }) {
   const [hi, setHi] = useState<string | null>(null);
   return (
     <Screen k="considered">
-      <Title sub="Tap a rule to highlight what it affected. Tap a company for the full analysis.">Everything we considered</Title>
+      {embedded ? (
+        <header className="mb-4">
+          <h2 className="font-serif text-3xl font-semibold">Everything we considered</h2>
+          <p className="mt-1 text-muted">Tap a rule to highlight what it affected. Tap a company for the full analysis.</p>
+        </header>
+      ) : (
+        <Title sub="Tap a rule to highlight what it affected. Tap a company for the full analysis.">Everything we considered</Title>
+      )}
       <div className="mb-3 flex flex-wrap gap-2">
         {rules.map((r) => <button key={r.id} className={`chip ${hi === r.id ? "chip-on" : ""}`} onClick={() => setHi(hi === r.id ? null : r.id)}><span className="num">{r.id}</span> · {r.text.length > 36 ? `${r.text.slice(0, 36)}…` : r.text}</button>)}
       </div>
@@ -208,12 +217,12 @@ export function ConsideredScreen({ p, rules, onOpen, onBack, onChallenge }: { p:
           </tbody>
         </table>
       </div>
-      <div className="mt-5 flex gap-3"><button className="btn-ghost" onClick={onBack}>Back to portfolio</button><button className="btn" onClick={onChallenge}>Challenge it</button></div>
+      <div className="mt-5 flex gap-3"><button className="btn-ghost" onClick={onBack}>{embedded ? "Back to the top" : "Back to portfolio"}</button><button className="btn" onClick={onChallenge}>Challenge it</button></div>
     </Screen>
   );
 }
 
-export function ChallengeScreen({ p, onDecide, onOpen, onDone, learnedNote }: { p: Portfolio; onDecide: (c: Candidate, own: boolean) => void; onOpen: (t: string) => void; onDone: () => void; learnedNote: string }) {
+export function ChallengeScreen({ p, onDecide, onOpen, onDone, learnedNote, embedded }: { p: Portfolio; onDecide: (c: Candidate, own: boolean) => void; onOpen: (t: string) => void; onDone: () => void; learnedNote: string; embedded?: boolean }) {
   const [seen, setSeen] = useState<string[]>([]);
   const deck = useMemo(() => p.considered.filter((c) => !c.mainReason.startsWith("Fails") && !seen.includes(c.ticker)).sort((a, b) => Number(a.status === "included") - Number(b.status === "included")), [p, seen]);
   const top = deck[0];
@@ -228,7 +237,14 @@ export function ChallengeScreen({ p, onDecide, onOpen, onDone, learnedNote }: { 
   const m = (c: Candidate, part: string) => Math.round(c.score.parts.find((x) => x.name === part)?.value ?? 0);
   return (
     <Screen k="challenge">
-      <Title sub="Swipe right to own it, left to drop it. Your portfolio rebalances and learns what you care about.">Challenge the AI</Title>
+      {embedded ? (
+        <header className="mb-4">
+          <h2 className="font-serif text-3xl font-semibold">Challenge the AI</h2>
+          <p className="mt-1 text-muted">Swipe right to own it, left to drop it. Your portfolio rebalances and learns what you care about.</p>
+        </header>
+      ) : (
+        <Title sub="Swipe right to own it, left to drop it. Your portfolio rebalances and learns what you care about.">Challenge the AI</Title>
+      )}
       <div className="relative mx-auto h-[400px] max-w-sm">
         {deck.slice(0, 3).reverse().map((c, i, arr) => {
           const isTop = i === arr.length - 1;
@@ -255,7 +271,7 @@ export function ChallengeScreen({ p, onDecide, onOpen, onDone, learnedNote }: { 
         <button className="btn" onClick={() => decide(true)} disabled={!top}>✓ Own</button>
       </div>
       <p className="mt-3 min-h-6 text-center text-sm text-accent">{learnedNote}</p>
-      <div className="mt-2 text-center"><button className="text-sm font-semibold text-accent" onClick={onDone}>See updated portfolio</button></div>
+      <div className="mt-2 text-center"><button className="text-sm font-semibold text-accent" onClick={onDone}>{embedded ? "Back to the top" : "See updated portfolio"}</button></div>
     </Screen>
   );
 }

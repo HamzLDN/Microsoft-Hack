@@ -82,10 +82,15 @@ export function keywordRules(text: string, amount = 100_000): AppRule[] {
   return out;
 }
 
-export const PARSE_SYSTEM = `You turn an investor's own words into rules. Reply with JSON only: {"rules":[{"text":string,"kind":"hard"|"soft","field":string,"op":string,"value":any,"quote":string,"kindReason":string,"confidence":number}]}
-Fields: max_bad_year_loss (value in dollars of a $100,000 portfolio), exclude_tag (value: list from ${JSON.stringify(ALL_TAGS)}), favour_sector (value: list from ${JSON.stringify(THEMES)}), min_dividend_yield (percent), profitable (true), max_volatility (percent), note (anything that cannot be checked with market data).
+export function parseSystem(amount = 100_000) {
+  return `You turn an investor's own words into rules. Reply with JSON only: {"rules":[{"text":string,"kind":"hard"|"soft","field":string,"op":string,"value":any,"quote":string,"kindReason":string,"confidence":number}]}
+Fields: max_bad_year_loss (value in dollars of this $${amount.toLocaleString("en-US")} portfolio, never of a different size), exclude_tag (value: list from ${JSON.stringify(ALL_TAGS)}), favour_sector (value: list from ${JSON.stringify(THEMES)}), min_dividend_yield (percent), profitable (true), max_volatility (percent), note (anything that cannot be checked with market data).
+If they name a percent, convert it against $${amount.toLocaleString("en-US")}. A 15% bad year on this portfolio is $${Math.round(amount * 0.15).toLocaleString("en-US")}, not $15,000 unless that is 15% of this amount.
 Hard or soft: "never, no, don't, can't, must, at most, not more than, need" mean hard. "prefer, like, rather, ideally, interested in, would be nice" mean soft.
 "quote" must be copied exactly from the investor's words. kindReason explains in plain English why it is hard or soft, quoting the deciding word. No dashes as punctuation.`;
+}
+
+export const PARSE_SYSTEM = parseSystem();
 
 export function jaccard(a: string, b: string) {
   const A = new Set(norm(a).split(" ")), B = new Set(norm(b).split(" "));

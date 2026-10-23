@@ -23,7 +23,7 @@ const TITLES: Record<string, string> = { fundamentals: "Fundamentals analyst", m
 const cache = new Map<string, { at: number; result: Awaited<ReturnType<typeof runFresh>> }>();
 
 export async function runCommittee(req: PortfolioRequest, client: string, userId?: string) {
-  const key = JSON.stringify([req.rules, req.horizon, req.risk, req.maxHolding, req.overrides, req.weights, client]);
+  const key = JSON.stringify([req.rules, req.horizon, req.risk, req.maxHolding, req.overrides, req.weights, req.amount, client]);
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < 3 * 3600e3) return { ...hit.result, cached: true };
   const result = await runFresh(req, client, userId);
@@ -65,7 +65,8 @@ async function runFresh(req: PortfolioRequest, client: string, userId?: string) 
     if (!a) continue;
     it.after = { status: a.status, amount: a.amount, score: a.score.total };
     const diff = a.amount - it.before.amount;
-    const kind = it.before.status !== a.status ? (a.status === "included" ? "added" : "dropped") : Math.abs(diff) >= 300 ? (diff > 0 ? "increased" : "decreased") : null;
+    const minMove = Math.max(100, (req.amount ?? 100_000) * 0.003);
+    const kind = it.before.status !== a.status ? (a.status === "included" ? "added" : "dropped") : Math.abs(diff) >= minMove ? (diff > 0 ? "increased" : "decreased") : null;
     if (!kind) continue;
     const positive = kind === "added" || kind === "increased";
     const turn = it.debate.turns.find((t) => (positive ? t.kind === "agree" : t.kind !== "agree"));

@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     // 2. Plain AI answer grounded in the glossary, no tools needed
     if (llmConfigured()) {
       try {
-        const sys = `You are the help assistant in Mandate, an investing app for individuals. Explain terms and what is on screen in plain English. Use this glossary as the source of truth:\n${Object.entries(GLOSSARY).map(([k, v]) => `${k}: ${v}`).join("\n")}\nWhat the user is looking at: ${context}\nLive prices are unavailable right now, so do not quote any. Use US dollars in examples. Never give personal financial advice. ${STYLE}`;
+        const sys = `You are the help assistant in Bettervest, an investing app for individuals. Explain terms and what is on screen in plain English. Use this glossary as the source of truth:\n${Object.entries(GLOSSARY).map(([k, v]) => `${k}: ${v}`).join("\n")}\nWhat the user is looking at: ${context}\nLive prices are unavailable right now, so do not quote any. Use US dollars in examples. Never give personal financial advice. ${STYLE}`;
         const r = await callText([{ role: "system", content: sys }, ...messages.slice(-6)], 30000);
         const text = cleanProse(r.text);
         return reply(req, { reply: text, model: r.model }, { mode, question: q, reply: text, model: r.model });

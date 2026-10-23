@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server";
 import { callJSON, llmConfigured } from "@/lib/ai/llm";
-import { applyMemory, cleanLlmRules, fewShot, formRules, keywordRules, mergeRules, PARSE_SYSTEM, similarCorrections } from "@/lib/ai/parser";
+import { applyMemory, cleanLlmRules, fewShot, formRules, keywordRules, mergeRules, parseSystem, similarCorrections } from "@/lib/ai/parser";
 import { resolveUser } from "@/lib/server/auth";
 import { db, save } from "@/lib/server/db";
-import type { AppRule, FormInput } from "@/lib/types";
+import { savingsOf, type AppRule, type FormInput } from "@/lib/types";
 
 export async function POST(req: Request) {
   const { form } = (await req.json()) as { form: FormInput };
   const text = (form.freeText || "").trim();
+  const amount = savingsOf(form);
   const d = db();
   let textRules: AppRule[] = [];
   let method = "none";
   const examples = similarCorrections(text, d.corrections);
   if (text) {
-    textRules = keywordRules(text);
+    textRules = keywordRules(text, amount);
     method = "keywords";
     if (llmConfigured()) {
       try {
-        const { data } = await callJSON(PARSE_SYSTEM + fewShot(examples), text, 30000);
+        const { data } = await callJSON(parseSystem(amount) + fewShot(examples), `Size every dollar figure to a portfolio of $${amount.toLocaleString("en-US")}.\n\n${text}`, 30000);
         const llm = cleanLlmRules(data, text);
         if (llm.length) {
           // LLM first; keep keyword rules for anything the LLM missed
