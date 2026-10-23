@@ -1,0 +1,13 @@
+[Unit]
+Description=Mandate data service (Flask :5001)
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Microsoft-Hack/data-service
+Environment=DATA_SERVICE_PORT=5001
+ExecStart=%h/Microsoft-Hack/data-service/.venv/bin/python app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

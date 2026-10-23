@@ -1,0 +1,17 @@
+[Unit]
+Description=Mandate Next.js (public port 6767)
+After=microsoft-hack-data.service
+Wants=microsoft-hack-data.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Microsoft-Hack/web
+Environment=DATA_SERVICE_URL=http://127.0.0.1:5001
+Environment=PORT=6767
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm run start:public
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

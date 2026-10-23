@@ -13,6 +13,7 @@ Microsoft x LSEG London Hackathon 2026. Educational project. Not financial advic
 | `data-service/` | Agent A | Flask (Python 3.11) on port 5001: market data, caching, metrics, scoring, portfolio engine |
 | `web/` (`app/api`, `lib`) | Agent B | Next.js API: login, saved preferences, preference parsing, three AI analysts, chat, learning |
 | `web/` (pages, `components`) | Agent C | Next.js frontend |
+| `mobile/` | | Expo (React Native) app, same design, same API |
 | `shared/` | Everyone, change only together | Data contract (`contract.ts`, `contract.py`) and mock JSON |
 | `docs/` | | Master plan, agent prompts, UI mock |
 
@@ -49,6 +50,14 @@ The committee review takes about two minutes on gpt-6.1-sol the first time; the 
 The **Help** chat runs a **server-side MCP client** that spawns `mcp-server/` and calls tools (`get_quote`, `search_universe`, etc.) so answers use the data service, not guessed prices. Built automatically when you `npm run dev` or `npm run build` in `web/`.
 
 Set `FINNHUB_API_KEY` in `.env` when you have it for live quotes.
+
+## Mobile (Expo)
+
+```bash
+cd mobile && npm install && npm start
+```
+
+Set **`EXPO_PUBLIC_API_URL`** in `mobile/.env` (see `mobile/.env.example`). See `mobile/README.md`.
 
 ## Tests
 

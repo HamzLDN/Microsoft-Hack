@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev -p 3000",
+    "dev:lan": "next dev -p 3000 -H 0.0.0.0",
     "predev": "npm run build:mcp",
     "prestart": "npm run build:mcp",
     "build:mcp": "cd ../mcp-server && npm run build",
     "build": "npm run build:mcp && next build",
     "start": "next start -p 3000",
+    "start:public": "next start -p 6767 -H 0.0.0.0",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "eval": "tsx scripts/eval.ts"
