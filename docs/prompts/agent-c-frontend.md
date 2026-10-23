@@ -6,7 +6,7 @@ You are one of three coding agents building **Mandate** in this repo, in paralle
 * You only edit: `web/app (pages), web/components`. Do not touch other agents' folders.
 * The data contract already exists in `shared/contract.ts` (zod) and `shared/contract.py`. Import it; never redefine the shapes. If you must change it, change both files in one small commit and say so in the commit message.
 * Wait for Agent B to push the `web/` skeleton (about 5 minutes), then pull and build pages inside it. Never run create-next-app yourself. Until the APIs are ready, work from mock JSON shaped exactly like `shared/contract.ts`.
-* Commit small and often, `git pull --rebase` before every push, never commit `.env`. Keys are in `.env` (see `.env.example`).
+* Commit small and often, `git pull --rebase` before every push, never commit `.env`. Keys are in `.env` (see `.env.example`). Never print, log or hardcode any key.
 * Write tests as you go (listed in your section). Report at the end what passes and what you could not test.
 * The UI target is `docs/mandate-mock.html`. Open it in a browser.
 
@@ -33,7 +33,7 @@ Tagline: "Your rules. Your portfolio. Every reason shown."
 ### Architecture
 * Next.js 14 App Router (TypeScript, Tailwind, Framer Motion) is the frontend and the main backend: auth, saved preferences, LLM calls, chat.
 * Flask (Python 3.11) data service on port 5001: all market data, caching, metrics, scoring, portfolio engine. Python because yfinance and the maths live there. Next.js API routes call Flask over HTTP. (Optional later: expose the same Flask functions as MCP tools. Not needed for the demo.)
-* LLM: Azure OpenAI (say so in the pitch) or OpenAI, model with JSON schema structured outputs, temperature 0.
+* LLM: the organiser-provided key is the primary LLM. It lives only in `.env` as `ORGANISER_API_KEY`, with `ORGANISER_API_ENDPOINT` and `ORGANISER_MODEL` (get both from the organisers; the key alone is not enough). All LLM calls go through one wrapper, `web/lib/ai/llm.ts`, which reads `LLM_PROVIDER` (`organiser` by default, then `azure`, then `openai`) so the provider can be switched without touching agent code. Use JSON schema structured outputs and temperature 0. In the pitch, name the Microsoft service the organiser key belongs to. Never hardcode, log or commit the key.
 * Storage: SQLite via Prisma (users, saved preferences, analysis cache). Flask uses a disk cache (diskcache or JSON files).
 
 ### Data sources (chosen)

@@ -18,11 +18,11 @@ Microsoft x LSEG London Hackathon 2026. Educational project. Not financial advic
 
 ## Before the agents start (5 minutes)
 
-1. Install Node 20+ and Python 3.11+ on each machine that runs an agent.
+1. Install Node 20+ and Python 3.10+ on each machine that runs an agent.
 2. Get API keys and fill `.env` from `.env.example`:
    * Finnhub: free key at finnhub.io
    * FRED: free key at fred.stlouisfed.org
-   * Azure OpenAI (or OpenAI): endpoint, key, deployment name
+   * LLM: the organiser-provided key goes in `ORGANISER_API_KEY`, with its endpoint and model name from the organisers. Share it by direct message only, never in the repo. Azure OpenAI or OpenAI are optional fallbacks.
    * SEC EDGAR: no key, but set a contact email for the User-Agent header
 3. Everyone pulls `main`. Agent B creates `web/` first (within 5 minutes) so Agent C does not create a second Next.js app.
 4. Paste the matching file from `docs/prompts/` into each agent.
