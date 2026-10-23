@@ -16,7 +16,8 @@ function setup(): Setup | null {
       : new AnthropicFoundry({ apiKey: foundryKey, baseURL: foundryUrl });
     return { client: client as unknown as Anthropic, platform: "foundry" };
   }
-  const key = e.ANTHROPIC_API_KEY || (e.LLM_PROVIDER === "claude" ? e.ORGANISER_API_KEY : "");
+  // Only real Claude keys (sk-ant...) go to Claude; anything else on the organiser line is the hackathon gateway key
+  const key = e.ANTHROPIC_API_KEY || (e.ORGANISER_API_KEY?.startsWith("sk-ant") ? e.ORGANISER_API_KEY : "");
   return key ? { client: new Anthropic({ apiKey: key }), platform: "claude-api" } : null;
 }
 
