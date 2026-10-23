@@ -121,8 +121,34 @@ export async function callTextWithTools(
         break;
       }
     } catch (err) {
-      errors.push(`${p.name}: ${(err as Error).message}`);
+      const msg = (err as Error).message;
+      // gpt-6.1-sol on the hackathon gateway rejects native function tools; run the same tools through a JSON protocol instead
+      if (/function tools|tools? (are|is) not supported|reasoning_effort/i.test(msg)) return jsonToolLoop(messages, tools, onTool);
+      errors.push(`${p.name}: ${msg}`);
     }
   }
   throw new Error(errors.length ? `All LLM providers failed. ${errors.join(" | ")}` : "No LLM provider configured");
+}
+
+/** Tool use for models without native function calling: the model asks for a tool in JSON, we run it and reply with the result. */
+async function jsonToolLoop(
+  messages: OpenAI.ChatCompletionMessageParam[],
+  tools: OpenAI.ChatCompletionTool[],
+  onTool: (name: string, args: Record<string, unknown>) => Promise<string>,
+): Promise<string> {
+  const list = tools.filter((t) => t.type === "function").map((t) => `${t.function.name}: ${t.function.description ?? ""} Arguments: ${JSON.stringify((t.function.parameters as { properties?: unknown })?.properties ?? {})}`).join("\n");
+  const protocol = `You can look things up with these tools:\n${list}\nTo use one, reply with JSON only: {"tool": "<name>", "args": {...}}. You will get the result back. When you can answer, reply with JSON only: {"answer": "<your reply to the user, following the style rules>"}. Use at most 3 tools.`;
+  const convo: OpenAI.ChatCompletionMessageParam[] = [{ role: "system", content: protocol }, ...messages];
+  const names = new Set(tools.filter((t) => t.type === "function").map((t) => t.function.name));
+  for (let step = 0; step < 5; step++) {
+    const r = await complete(convo, true, 60000);
+    let data: { tool?: string; args?: Record<string, unknown>; answer?: string };
+    try { data = JSON.parse(r.text.replace(/^```(?:json)?\s*|\s*```$/g, "")); } catch { return r.text; }
+    if (data.answer) return data.answer;
+    if (!data.tool || !names.has(data.tool)) return r.text;
+    const result = await onTool(data.tool, data.args ?? {});
+    convo.push({ role: "assistant", content: r.text }, { role: "user", content: `Result of ${data.tool}: ${result.slice(0, 4000)}` });
+  }
+  const last = await complete([...convo, { role: "user", content: 'Answer now with {"answer": "..."} using what you have.' }], true, 60000);
+  try { return JSON.parse(last.text).answer ?? last.text; } catch { return last.text; }
 }

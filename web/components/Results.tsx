@@ -101,7 +101,7 @@ function CommitteeCard({ c, onOpen, onRerun }: { c: Committee; onOpen: (t: strin
                 <button className="w-full rounded-lg p-2 text-left text-sm transition hover:bg-sky" onClick={() => onOpen(x.ticker)}>
                   <span className="flex flex-wrap items-baseline gap-2">
                     <Pill tone={x.kind === "added" || x.kind === "increased" ? "good" : "bad"}>{verb[x.kind]}</Pill>
-                    <b>{x.name}</b><span className="num text-xs text-muted">{money(x.before)} to {money(x.after)} · score {Math.round(x.scoreBefore)} to {Math.round(x.scoreAfter)}</span>
+                    <b>{x.name}</b><span className="num text-xs text-muted">{money(x.before)} to {money(x.after)}</span>
                   </span>
                   <span className="mt-1 block text-muted"><b className="text-ink">{x.speaker}:</b> <Bold text={x.reason} /></span>
                 </button>
@@ -148,7 +148,7 @@ export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, o
                     <span className="font-semibold">{h.name}</span> <span className="num text-xs text-muted">{h.ticker} · {h.sector}</span> {dissent(h.ticker)}
                     <span className="mt-0.5 flex flex-wrap gap-x-4 text-sm"><span className="text-good">+ <Bold text={h.pros[0]?.text ?? ""} /></span><span className="text-bad">minus <Bold text={h.cons[0]?.text ?? ""} /></span></span>
                   </span>
-                  <span className="text-right"><b className="num block">{money(h.amount)}</b>{h.score.total ? <span className="num text-xs text-muted">score {Math.round(h.score.total)}</span> : null}</span>
+                  <span className="text-right"><b className="num block">{money(h.amount)}</b></span>
                 </button>
               </li>
             ))}
@@ -238,7 +238,7 @@ export function ChallengeScreen({ p, onDecide, onOpen, onDone, learnedNote }: { 
               className="paper absolute inset-0 grid cursor-grab content-start gap-3 p-6 shadow-paper active:cursor-grabbing">
               <span>{c.status === "included" ? <Pill tone="good">Currently in · {money(c.amount)}</Pill> : <Pill tone="warn">Currently out</Pill>}</span>
               <h2 className="font-serif text-3xl font-semibold">{c.name}</h2>
-              <span className="num text-sm text-muted">{c.ticker} · {c.sector} · score {Math.round(c.score.total)}</span>
+              <span className="num text-sm text-muted">{c.ticker} · {c.sector}</span>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 {["Growth", "Stability", "Income"].map((k) => <div key={k} className="rounded-lg bg-sky p-2"><b className="num block text-lg">{m(c, k)}</b>{k}</div>)}
               </div>

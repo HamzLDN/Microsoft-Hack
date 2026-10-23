@@ -38,8 +38,13 @@ const MCP_TOOLS: OpenAI.ChatCompletionTool[] = [
 ];
 
 async function runTool(name: string, args: Record<string, unknown>): Promise<string> {
-  const out = await callMcpTool(name, args);
-  return typeof out === "string" ? out : JSON.stringify(out);
+  // A failing tool is reported to the model instead of failing the whole answer
+  try {
+    const out = await callMcpTool(name, args);
+    return typeof out === "string" ? out : JSON.stringify(out);
+  } catch (err) {
+    return JSON.stringify({ error: `${name} is unavailable right now: ${(err as Error).message}. Answer without it and do not invent numbers.` });
+  }
 }
 
 /** LLM reply that may call server-side MCP tools (same process as Help chat). */

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { AGENTS } from "@/lib/ai/analysts";
-import { lookup } from "@/lib/ai/glossary";
+import { GLOSSARY, lookup } from "@/lib/ai/glossary";
 import { allowedNumbers, cleanProse, extractNumbers, numberSupported, stripDashes } from "@/lib/ai/guardrails";
 import { callText, llmConfigured } from "@/lib/ai/llm";
 import { answerHelpChat } from "@/lib/mcp/helpChat";
@@ -32,13 +32,29 @@ export async function POST(req: Request) {
   const q = messages[messages.length - 1]?.content ?? "";
 
   if (mode === "help") {
+    const term = lookup(q);
+    const glossaryAnswer = term ? `**${Object.keys(GLOSSARY).find((k) => GLOSSARY[k] === term)}**: ${term}` : "";
+    // 1. Live data and tools (prices, metrics) through the MCP server
     try {
       const text = stripDashes(await answerHelpChat(q, context, messages));
       return reply(req, { reply: text }, { mode, question: q, reply: text, offline: !llmConfigured() });
-    } catch {
-      const text = "I couldn't reach the AI or data service just now. Check that the data service is running on port 5001, or ask about a metric like **volatility**.";
-      return reply(req, { reply: text }, { mode, question: q, reply: text, offline: true });
+    } catch (err) {
+      console.error("help chat tools failed, answering without them:", (err as Error).message);
     }
+    // 2. Plain AI answer grounded in the glossary, no tools needed
+    if (llmConfigured()) {
+      try {
+        const sys = `You are the help assistant in Mandate, an investing app for individuals. Explain terms and what is on screen in plain English. Use this glossary as the source of truth:\n${Object.entries(GLOSSARY).map(([k, v]) => `${k}: ${v}`).join("\n")}\nWhat the user is looking at: ${context}\nLive prices are unavailable right now, so do not quote any. Use US dollars in examples. Never give personal financial advice. ${STYLE}`;
+        const r = await callText([{ role: "system", content: sys }, ...messages.slice(-6)], 30000);
+        const text = cleanProse(r.text);
+        return reply(req, { reply: text, model: r.model }, { mode, question: q, reply: text, model: r.model });
+      } catch {
+        /* fall through to the glossary */
+      }
+    }
+    // 3. Glossary only
+    const text = glossaryAnswer || "I can explain anything on screen, like **volatility**, **bad year loss** or the **score**. Live prices are unavailable right now.";
+    return reply(req, { reply: text }, { mode, question: q, reply: text, offline: true });
   }
 
   const role = AGENTS[agent ?? "fundamentals"];

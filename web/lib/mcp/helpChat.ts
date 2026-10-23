@@ -33,7 +33,7 @@ export async function answerHelpChat(q: string, context: string, messages: Msg[]
 
   const sys = `You are the help assistant in Mandate, an investing app for individuals. Explain terms and what is on screen. Use this glossary as the source of truth:\n${Object.entries(GLOSSARY)
     .map(([k, v]) => `${k}: ${v}`)
-    .join("\n")}\nWhat the user is looking at: ${context}\nYou have MCP tools for market data: search_universe, get_quote, get_metrics, data_health. Always use get_quote for prices; never invent numbers. Never give personal financial advice. ${STYLE}`;
+    .join("\n")}\nWhat the user is looking at: ${context}\nYou have MCP tools for market data: search_universe, get_quote, get_metrics, data_health. Always use get_quote for prices; never invent numbers. Use US dollars in examples. Never give personal financial advice. ${STYLE}`;
   const r = await callTextWithMcp([{ role: "system", content: sys }, ...messages.slice(-6)]);
   return stripDashes(r);
 }

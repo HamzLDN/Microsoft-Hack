@@ -104,11 +104,12 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
   const [runs, setRuns] = useState<Partial<Record<AgentName, Run>>>({});
   const [weights, setWeights] = useState<Record<string, number> | null>(null);
   const [debate, setDebate] = useState<Debate | null>(null);
+  const [showAI, setShowAI] = useState(false);
 
   useEffect(() => { if (ticker) api(`/api/data/history/${ticker}?range=${range}`).then((r) => setPoints(r.points)).catch(() => setPoints([])); }, [ticker, range]);
   useEffect(() => {
     if (!ticker) return;
-    setRuns({}); setMetrics({}); setQuote(null); setWeights(null); setRange("1Y"); setDebate(null);
+    setRuns({}); setMetrics({}); setQuote(null); setWeights(null); setRange("1Y"); setDebate(null); setShowAI(false);
     api(`/api/data/metrics/${ticker}`).then((r) => setMetrics(r.metrics)).catch(() => null);
     const q = () => api(`/api/data/quote/${ticker}`).then(setQuote).catch(() => null);
     q();
@@ -116,7 +117,8 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
     return () => clearInterval(t);
   }, [ticker]);
   useEffect(() => {
-    if (!c || !p) return;
+    // Analysts only run when the user opens the AI analysis
+    if (!c || !p || !showAI) return;
     if (committeeItem) {
       setRuns(Object.fromEntries(committeeItem.round1.map((o, i) => [o.agent, { output: o, evidence: committeeItem.evidence, attempts: 1, provider: committeeItem.models[i] }])));
       setDebate(committeeItem.debate);
@@ -128,7 +130,7 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
         .catch(() => null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c?.ticker]);
+  }, [c?.ticker, showAI]);
 
   const done = AGENTS.map((a) => runs[a.key]).filter(Boolean) as Run[];
   useEffect(() => {
@@ -190,25 +192,14 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
                   <span>{r?.text} <span className="text-muted">· {ch.detail} · {r?.kind === "hard" ? "hard rule" : "preference"}</span></span></li>); })}</ul>
             </section>
 
-            {parts.length > 0 && (
-              <section className="paper mt-5 p-4">
-                <div className="flex items-baseline justify-between"><p className="label">Where the score of {Math.round(c.score.total)} comes from<Info term="Score" onAsk={onAsk} /></p>
-                  <button className="text-xs font-semibold text-accent" onClick={() => setWeights(weights ? null : w)}>{weights ? "Cancel" : "Change how we score"}</button></div>
-                <ul className="mt-2 grid gap-2 text-sm">
-                  {parts.map((x) => (
-                    <li key={x.name} className="grid grid-cols-[110px_1fr_70px] items-center gap-2">
-                      <span>{x.name}<Info term={x.name} onAsk={onAsk} /></span>
-                      {weights ? <input aria-label={`${x.name} weight`} type="range" min={0} max={50} value={w[x.name]} onChange={(e) => setWeights({ ...w, [x.name]: +e.target.value })} className="accent-accent" />
-                        : <span className="h-2 overflow-hidden rounded-full bg-sky"><i className="block h-full bg-accent" style={{ width: `${x.value}%` }} /></span>}
-                      <span className="num text-right text-xs text-muted">{weights ? `weight ${w[x.name]}` : `${Math.round(x.value)} × ${Math.round(x.weight)}%`}</span>
-                    </li>
-                  ))}
-                  {c.score.ruleAdjustments.filter((a) => a.points).map((a) => <li key={a.ruleId} className="text-xs text-muted">{a.ruleId}: {a.points > 0 ? "plus" : "minus"} {Math.abs(a.points)} points</li>)}
-                </ul>
-                {weights && <button className="btn mt-3" onClick={() => { onReweight(weights); setWeights(null); }}>Rebuild with these weights</button>}
+            {!showAI ? (
+              <section className="mt-6 rounded-xl border border-line bg-card p-4">
+                <p className="font-semibold">AI analysis and committee discussion</p>
+                <p className="mt-1 text-sm text-muted">Three specialist analysts give their views on {c.name}, then discuss it with each other. You can question any of them.</p>
+                <button className="btn mt-3" onClick={() => setShowAI(true)}>Show AI analysis</button>
               </section>
-            )}
-
+            ) : (
+              <>
             <section className="mt-6"><p className="label mb-3">AI analysis · round 1 · each specialist&apos;s view</p>
               <div className="grid gap-4">{AGENTS.map((a) => <AnalystCard key={a.key} a={a} run={runs[a.key]} onAsk={askAnalyst} />)}</div>
             </section>
@@ -256,6 +247,9 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
                 {decision.disagree && <p className="mt-2"><Pill tone="warn">Analysts disagree</Pill> <span className="text-sm text-muted">Two analysts lean the other way. Read both views above.</span></p>}
                 <p className="mt-2 text-xs text-muted">The decision follows your rules and the score. Analysts can move the score by at most 5 points ({decision.scoreNudge >= 0 ? "plus" : "minus"} {Math.abs(decision.scoreNudge)} here) and can never override a hard rule.</p>
               </motion.section>
+            )}
+                <button className="mt-4 text-sm font-semibold text-accent" onClick={() => setShowAI(false)}>Hide AI analysis</button>
+              </>
             )}
           </motion.aside>
         </>
