@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AGENTS } from "@/lib/ai/analysts";
 import { lookup } from "@/lib/ai/glossary";
-import { allowedNumbers, extractNumbers, numberSupported, stripDashes } from "@/lib/ai/guardrails";
+import { allowedNumbers, cleanProse, extractNumbers, numberSupported, stripDashes } from "@/lib/ai/guardrails";
 import { callText, llmConfigured } from "@/lib/ai/llm";
 import { answerHelpChat } from "@/lib/mcp/helpChat";
 import { currentUser } from "@/lib/server/auth";
@@ -48,9 +48,9 @@ export async function POST(req: Request) {
 Talk to the client like a thoughtful analyst in a meeting: answer the question directly first, then explain why it matters for their goals and what the trade off is. Give your honest view, including doubts.
 The client: ${client || context}
 Your earlier view of this company: ${view || "not given"}
-Evidence you may use (cite ids in square brackets when you use a number):
+Evidence you may use:
 ${ev.map((e) => `${e.id}: ${e.label} = ${e.value} (${e.source}, ${e.asOf})`).join("\n")}
-Every number you write must come from that evidence; you may describe things qualitatively without numbers. If the evidence can't answer something, say what you would need to know. Never give personal financial advice beyond this educational analysis. ${STYLE}`;
+Every number you write must come from that evidence; you may describe things qualitatively without numbers. Do not write evidence ids like E7 in your answer. If the evidence can't answer something, say what you would need to know. Never give personal financial advice beyond this educational analysis. ${STYLE}`;
   const allowed = allowedNumbers(ev);
   let msgs = [{ role: "system" as const, content: sys }, ...messages.slice(-8)];
   let blocked: number[] = [];
@@ -58,7 +58,7 @@ Every number you write must come from that evidence; you may describe things qua
     try {
       const r = await callText(msgs, 45000, { agent });
       const bad = extractNumbers(r.text).filter((n) => !numberSupported(n, allowed));
-      if (!bad.length) return reply({ reply: stripDashes(r.text), model: r.model }, { mode, agent, ticker, question: q, reply: stripDashes(r.text), model: r.model, retried: attempt > 0, blocked });
+      if (!bad.length) return reply({ reply: cleanProse(r.text), model: r.model }, { mode, agent, ticker, question: q, reply: cleanProse(r.text), model: r.model, retried: attempt > 0, blocked });
       blocked = [...blocked, ...bad];
       msgs = [...msgs, { role: "assistant" as const, content: r.text }, { role: "user" as const, content: `Some figures (${bad.join(", ")}) are not in the evidence. Answer again using only evidence figures, or describe them in words.` }];
     } catch {

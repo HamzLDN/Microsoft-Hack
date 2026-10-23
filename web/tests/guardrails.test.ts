@@ -58,3 +58,10 @@ describe("data fallback", () => {
     expect(out.points.length).toBeLessThanOrEqual(5);
   });
 });
+
+import { cleanProse } from "@/lib/ai/guardrails";
+describe("clean prose", () => {
+  it("removes evidence codes and formats dollars", () => {
+    expect(cleanProse("I support **6400 dollars** here [A1,A2,R5]. Yield is 5.7% [E7].")).toBe("I support **$6,400** here. Yield is 5.7%.");
+  });
+});

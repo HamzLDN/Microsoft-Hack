@@ -1,7 +1,7 @@
 // Round 2: the three analysts read each other's views, reply, and may change their stance. Same evidence, same checks.
 import type { AgentName, AnalystOutput, Candidate, Evidence } from "../types";
 import { AGENTS } from "./analysts";
-import { allowedNumbers, extractNumbers, numberSupported, stripDashes } from "./guardrails";
+import { allowedNumbers, cleanProse, extractNumbers, numberSupported, stripDashes } from "./guardrails";
 import { callJSON, llmConfigured } from "./llm";
 
 type Stance = AnalystOutput["stance"];
@@ -39,7 +39,7 @@ async function llmTurns(agent: AgentName, c: Candidate, round1: AnalystOutput[],
   const system = `You are the ${AGENTS[agent].title} on an investment committee for one individual client, discussing ${c.name} (${c.ticker}). You focus on ${AGENTS[agent].focus}.
 Read your colleagues' views and reply to them directly, the way analysts argue in a meeting. Challenge where your specialty sees a risk they missed, agree where the evidence supports them, or ask a pointed question. Every reply must explain WHY, in terms of this client's goals, not just repeat a figure.
 Then decide your final stance. Change it if a colleague made a point that matters for this client, and say which point in stanceChangeReason (empty string if unchanged). Changing your mind when the evidence warrants it is expected.
-Rules: 1 or 2 replies, each 15 to 50 words, each to a named colleague. Use only numbers from the evidence and cite their ids. Bold the key figure with **. No dashes as punctuation.`;
+Rules: 1 or 2 replies, each 15 to 50 words, each to a named colleague. Use only numbers from the evidence and list their ids in evidenceIds. Bold the key figure with **. No dashes as punctuation. Never write evidence ids (like E3, A1 or R5) or the word "engine" in your text; ids go only in the evidenceIds field. Write money like $6,400.`;
   const user = `Client: ${client}\n\nYour first view:\n${view(mine)}\n\nColleagues:\n${others.map(view).join("\n\n")}\n\nEvidence:\n${ev.map((e) => `${e.id}: ${e.label} = ${e.value}`).join("\n")}`;
   let fix = "";
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -48,7 +48,7 @@ Rules: 1 or 2 replies, each 15 to 50 words, each to a named colleague. Use only 
       const d = data as { replies: { to: AgentName; kind: Turn["kind"]; text: string; evidenceIds: string[] }[]; finalStance: Stance; stanceChangeReason: string };
       const replies = (d.replies || []).filter((r) => r.to !== agent && ORDER.includes(r.to)).slice(0, 2);
       if (replies.length && replies.every((r) => checkReply(r, ev))) {
-        return { turns: replies.map((r) => ({ from: agent, to: r.to, kind: r.kind, text: stripDashes(r.text), evidenceIds: r.evidenceIds, model })), stance: d.finalStance, reason: stripDashes(d.stanceChangeReason || "") };
+        return { turns: replies.map((r) => ({ from: agent, to: r.to, kind: r.kind, text: cleanProse(r.text), evidenceIds: r.evidenceIds, model })), stance: d.finalStance, reason: cleanProse(d.stanceChangeReason || "") };
       }
       fix = `\nYour last reply was rejected: replies must explain the point for this client in at least 15 words and use only figures listed above.`;
     } catch {

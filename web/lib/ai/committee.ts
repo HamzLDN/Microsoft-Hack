@@ -20,7 +20,18 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Prom
 
 const TITLES: Record<string, string> = { fundamentals: "Fundamentals analyst", markets: "Markets and news analyst", fit: "Client fit analyst" };
 
+const cache = new Map<string, { at: number; result: Awaited<ReturnType<typeof runFresh>> }>();
+
 export async function runCommittee(req: PortfolioRequest, client: string, userId?: string) {
+  const key = JSON.stringify([req.rules, req.horizon, req.risk, req.maxHolding, req.overrides, req.weights, client]);
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < 3 * 3600e3) return { ...hit.result, cached: true };
+  const result = await runFresh(req, client, userId);
+  cache.set(key, { at: Date.now(), result });
+  return result;
+}
+
+async function runFresh(req: PortfolioRequest, client: string, userId?: string) {
   const t0 = Date.now();
   const before = await buildPortfolio({ ...req, adjustments: undefined }, userId);
   const rules = req.rules as Rule[];
@@ -29,7 +40,7 @@ export async function runCommittee(req: PortfolioRequest, client: string, userId
   const near = before.considered.filter((c) => c.status === "excluded" && c.mainReason.startsWith("Ranked")).slice(0, 4);
   const review = [...held, ...near];
 
-  const items = await pool(review, 4, async (c): Promise<CommitteeItem> => {
+  const items = await pool(review, 7, async (c): Promise<CommitteeItem> => {
     let evidence: Evidence[] = [];
     try { evidence = (await flask<{ evidence: Evidence[] }>(`/evidence/${c.ticker}`)).evidence; } catch {}
     const all = [...evidence, ...fitEvidence(c, rules, before.badYearLoss)];

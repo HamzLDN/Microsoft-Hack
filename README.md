@@ -31,12 +31,14 @@ Needs Python 3.11 and Node 20. On the hackathon Mac, Node lives in `~/.local/nod
 
 | Key | Switches on | Without it |
 |---|---|---|
-| `ORGANISER_API_KEY`, `ORGANISER_API_ENDPOINT`, `ORGANISER_MODEL` | AI analysts, AI preference parsing, AI chat | Keyword parser and analysts built directly from the data; still fully working |
+| `ORGANISER_API_KEY` (your team key from the hackathon portal) | AI analysts, committee discussion, AI preference parsing, AI chat, all on **gpt-6.1-sol** via the hackathon Azure OpenAI gateway | Keyword parser and discussions built directly from the data; still fully working |
 | `FINNHUB_API_KEY` | Live quotes, Finnhub ratios and news | yfinance |
 | `SEC_USER_AGENT` | Annual revenue and free cash flow from 10-K filings | yfinance |
 | `FRED_API_KEY` | Inflation and interest rates for the markets analyst | Left out |
 
-Check the AI key with `http://localhost:3000/api/llm-health`, and data sources with `http://localhost:5001/health`.
+Check the AI key with `http://localhost:3000/api/llm-health`, and data sources with `http://localhost:5001/health`. Every AI discussion and chat is visible at `http://localhost:3000/backstage`.
+
+The committee review takes about two minutes on gpt-6.1-sol the first time; the same preferences then load instantly for three hours, so rehearse once before presenting.
 
 ## MCP (server-side, for the chatbot)
 

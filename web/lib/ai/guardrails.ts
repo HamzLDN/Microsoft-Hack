@@ -58,3 +58,8 @@ export function validateAnalyst(raw: unknown, agent: string, evidence: Evidence[
 export function stripDashes(s: string) {
   return s.replace(/\s*[\u2013\u2014]\s*/g, ", ");
 }
+
+/** Removes evidence codes like [E3] or [A1,A2,R5] from prose; they belong in the evidence chips, not the sentence. */
+export function cleanProse(s: string) {
+  return stripDashes(s.replace(/\s*\[(?:[A-Z]\d{1,2}\s*,?\s*)+\]/g, "").replace(/\b(\d[\d,]*) dollars\b/g, (_, n) => `$${Number(n.replace(/,/g, "")).toLocaleString("en-US")}`)).replace(/\s+([.,;])/g, "$1");
+}

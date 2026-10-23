@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { callJSON, llmConfigured } from "@/lib/ai/llm";
 
 export async function GET() {
-  if (!llmConfigured()) return NextResponse.json({ ok: false, reason: "No LLM configured. Paste the hackathon key after ORGANISER_API_KEY= in .env (or set a Claude key) and restart." });
+  if (!llmConfigured()) return NextResponse.json({ ok: false, reason: "No LLM configured. Paste your team key from the hackathon portal after ORGANISER_API_KEY= in .env and restart." });
   const t = Date.now();
   try {
     const r = await callJSON('Reply with JSON {"ok": true}', "ping", 15000);

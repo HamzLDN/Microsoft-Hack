@@ -14,8 +14,6 @@
     "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
-    "@anthropic-ai/foundry-sdk": "^1.0.0",
-    "@anthropic-ai/sdk": "^1.1.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "framer-motion": "11.11.17",
     "lightweight-charts": "4.2.1",
