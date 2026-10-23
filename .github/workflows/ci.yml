@@ -1,9 +1,7 @@
+# Automatic CI disabled — run manually from GitHub Actions if needed.
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 concurrency:
