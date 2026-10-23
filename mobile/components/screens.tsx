@@ -51,12 +51,10 @@ export function AuthScreen({ onDone }: { onDone: (u: User, token: string) => voi
   };
   return (
     <ScrollView contentContainerStyle={styles.pad}>
-      <Label>Bettervest</Label>
       <Text style={styles.hero}>
         Your rules.{"\n"}Your portfolio.{"\n"}
         <Text style={{ color: colors.accent }}>Every reason shown.</Text>
       </Text>
-      <Text style={styles.heroSub}>Tell us what you want and what you won&apos;t accept. We build a portfolio around the budget you type in, and show the pros, cons and the rule behind every decision.</Text>
       <Paper style={{ marginTop: 20 }}>
         <Text style={styles.cardTitle}>{mode === "login" ? "Log in" : "Create your account"}</Text>
         <Field label="Email" value={email} onChange={setEmail} keyboard="email-address" />
@@ -343,7 +341,6 @@ export function HelpModal({ open, onClose, context }: { open: boolean; onClose: 
 const styles = StyleSheet.create({
   pad: { padding: 20, paddingBottom: 40, backgroundColor: colors.paper },
   hero: { fontFamily: "Newsreader_600SemiBold", fontSize: 36, lineHeight: 40, color: colors.ink },
-  heroSub: { marginTop: 12, fontSize: 17, color: colors.muted, fontFamily: "SourceSans3_400Regular", lineHeight: 24 },
   cardTitle: { fontFamily: "Newsreader_600SemiBold", fontSize: 22, color: colors.ink },
   err: { marginTop: 8, color: colors.bad, fontSize: 14 },
   link: { color: colors.accent, fontWeight: "700", textAlign: "center", padding: 8 },

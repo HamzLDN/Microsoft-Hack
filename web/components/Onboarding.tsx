@@ -20,13 +20,9 @@ export function AuthScreen({ onDone }: { onDone: (u: { id: string; email: string
   };
   return (
     <Screen k="auth">
-      <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[1.2fr_1fr]">
-        <div>
-          <p className="label mb-3">Bettervest</p>
-          <h1 className="font-serif text-5xl font-semibold leading-[1.05] tracking-tight md:text-6xl">Your rules.<br />Your portfolio.<br /><span className="text-accent">Every reason shown.</span></h1>
-          <p className="mt-5 max-w-lg text-lg text-muted">Tell us what you want and what you won&apos;t accept. We build a portfolio around the budget you type in, and show the pros, cons and the rule behind every decision.</p>
-        </div>
-        <form onSubmit={submit} className="paper p-6 shadow-paper">
+      <div className="mx-auto max-w-xl">
+        <h1 className="font-serif text-5xl font-semibold leading-[1.05] tracking-tight md:text-6xl">Your rules.<br />Your portfolio.<br /><span className="text-accent">Every reason shown.</span></h1>
+        <form onSubmit={submit} className="paper mt-8 p-6 shadow-paper">
           <h2 className="font-serif text-2xl font-semibold">{mode === "login" ? "Log in" : "Create your account"}</h2>
           <label className="mt-4 block text-sm font-semibold" htmlFor="email">Email</label>
           <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5" required />
