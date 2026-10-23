@@ -48,15 +48,23 @@ async function complete(messages: OpenAI.ChatCompletionMessageParam[], json: boo
     }
   }
   for (const p of providers()) {
-    try {
-      const res = await p.client.chat.completions.create(
-        { model: p.model, messages, temperature: 0, ...(json ? { response_format: { type: "json_object" as const } } : {}) },
-        { timeout: timeoutMs, maxRetries: 0 },
-      );
-      const text = res.choices[0]?.message?.content ?? "";
-      if (text) return { text, provider: p.name, model: p.model };
-    } catch (err) {
-      errors.push(`${p.name}: ${(err as Error).message}`);
+    // Optional per-analyst model, e.g. ANALYST_MODEL_MARKETS, so each analyst can run on a different model
+    const model = (opts.agent && process.env[`ANALYST_MODEL_${opts.agent.toUpperCase()}`]) || p.model;
+    // Some models reject temperature or JSON mode; retry once without whatever they refused
+    let extras: Record<string, unknown> = { temperature: 0, ...(json ? { response_format: { type: "json_object" } } : {}) };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await p.client.chat.completions.create({ model, messages, ...extras } as OpenAI.ChatCompletionCreateParamsNonStreaming, { timeout: Math.max(timeoutMs, 30000), maxRetries: 0 });
+        const text = res.choices[0]?.message?.content ?? "";
+        if (text) return { text, provider: p.name, model: res.model || model };
+        break;
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (/temperature/i.test(msg) && "temperature" in extras) { const { temperature, ...rest } = extras; extras = rest; continue; }
+        if (/response_format|json_object/i.test(msg) && "response_format" in extras) { const { response_format, ...rest } = extras; extras = rest; continue; }
+        errors.push(`${p.name}: ${msg}`);
+        break;
+      }
     }
   }
   throw new Error(errors.length ? `All LLM providers failed. ${errors.join(" | ")}` : "No LLM provider configured");
