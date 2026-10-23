@@ -16,3 +16,4 @@ web/data/*.json
 web/.next/
 web/tsconfig.tsbuildinfo
 web/eval-results.json
+actions-runner/
