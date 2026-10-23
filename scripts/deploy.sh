@@ -21,6 +21,8 @@ if [ ! -d data-service/.venv ]; then
 fi
 data-service/.venv/bin/pip install -q -r data-service/requirements.txt
 
+(cd mcp-server && npm ci --no-audit --no-fund)
+
 if [ "${SKIP_TESTS:-0}" != "1" ]; then
   echo "[deploy] tests…"
   data-service/.venv/bin/python -m pytest -q data-service/tests
