@@ -1,5 +1,6 @@
 // One wrapper for every LLM call. Provider order: organiser key, then Azure OpenAI, then OpenAI.
 import OpenAI, { AzureOpenAI } from "openai";
+import { claudeComplete, claudeConfigured, modelFor } from "./claude";
 
 type Provider = { name: string; model: string; client: OpenAI };
 
@@ -29,10 +30,23 @@ function providers(): Provider[] {
   return list;
 }
 
-export const llmConfigured = () => providers().length > 0;
+const useClaude = () => (process.env.LLM_PROVIDER || "claude").toLowerCase() === "claude" && claudeConfigured();
+export const llmConfigured = () => useClaude() || providers().length > 0;
 
-async function complete(messages: OpenAI.ChatCompletionMessageParam[], json: boolean, timeoutMs: number) {
+type CallOpts = { agent?: string; schema?: Record<string, unknown> };
+
+async function complete(messages: OpenAI.ChatCompletionMessageParam[], json: boolean, timeoutMs: number, opts: CallOpts = {}) {
   const errors: string[] = [];
+  if (useClaude()) {
+    try {
+      const system = messages.filter((m) => m.role === "system").map((m) => String(m.content)).join("\n\n");
+      const convo = messages.filter((m) => m.role === "user" || m.role === "assistant").map((m) => ({ role: m.role as "user" | "assistant", content: String(m.content) }));
+      const r = await claudeComplete({ system, messages: convo, model: modelFor(opts.agent), schema: json ? opts.schema : undefined, timeoutMs: Math.max(timeoutMs, 45000) });
+      return { text: r.text, provider: `claude (${r.platform})`, model: r.model };
+    } catch (err) {
+      errors.push(`claude: ${(err as Error).message}`);
+    }
+  }
   for (const p of providers()) {
     try {
       const res = await p.client.chat.completions.create(
@@ -48,12 +62,12 @@ async function complete(messages: OpenAI.ChatCompletionMessageParam[], json: boo
   throw new Error(errors.length ? `All LLM providers failed. ${errors.join(" | ")}` : "No LLM provider configured");
 }
 
-export async function callJSON(system: string, user: string, timeoutMs = 12000): Promise<{ data: unknown; provider: string; model: string }> {
-  const r = await complete([{ role: "system", content: system }, { role: "user", content: user }], true, timeoutMs);
+export async function callJSON(system: string, user: string, timeoutMs = 12000, opts: CallOpts = {}): Promise<{ data: unknown; provider: string; model: string }> {
+  const r = await complete([{ role: "system", content: system }, { role: "user", content: user }], true, timeoutMs, opts);
   const cleaned = r.text.replace(/^```(?:json)?\s*|\s*```$/g, "");
   return { data: JSON.parse(cleaned), provider: r.provider, model: r.model };
 }
 
-export async function callText(messages: OpenAI.ChatCompletionMessageParam[], timeoutMs = 12000) {
-  return complete(messages, false, timeoutMs);
+export async function callText(messages: OpenAI.ChatCompletionMessageParam[], timeoutMs = 12000, opts: CallOpts = {}) {
+  return complete(messages, false, timeoutMs, opts);
 }

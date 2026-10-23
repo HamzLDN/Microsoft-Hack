@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   }
   try {
     const sys = `You are the ${role.title}. You focus on ${role.focus}. Answer the client's follow up using only this evidence, citing ids in square brackets:\n${ev.map((e) => `${e.id}: ${e.label} = ${e.value} (${e.source}, ${e.asOf})`).join("\n")}\nIf the evidence cannot answer it, say so. Every number must come from the evidence. ${STYLE}`;
-    const r = await callText([{ role: "system", content: sys }, ...messages.slice(-8)]);
+    const r = await callText([{ role: "system", content: sys }, ...messages.slice(-8)], 30000, { agent });
     const allowed = allowedNumbers(ev);
     const bad = extractNumbers(r.text).filter((n) => !numberSupported(n, allowed));
     if (bad.length) {

@@ -1,6 +1,7 @@
 // The three analysts. Each sees only its slice of evidence, must cite ids, and is checked by code.
 import type { AgentName, AnalystOutput, Candidate, Evidence, Rule } from "../types";
 import { validateAnalyst, stripDashes } from "./guardrails";
+import { ANALYST_SCHEMA } from "./claude";
 import { callJSON, llmConfigured } from "./llm";
 
 export const AGENTS: Record<AgentName, { title: string; focus: string; ids: (e: Evidence) => boolean }> = {
@@ -94,7 +95,7 @@ export async function runAnalyst(agent: AgentName, c: Candidate, allEvidence: Ev
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const fix = errors.length ? `\nYour previous answer was rejected: ${errors.join("; ")}. Fix these and answer again.` : "";
-      const { data, provider } = await callJSON(SYSTEM(agent), userPrompt(c, ev, client) + fix);
+      const { data, provider } = await callJSON(SYSTEM(agent), userPrompt(c, ev, client) + fix, 45000, { agent, schema: ANALYST_SCHEMA });
       const v = validateAnalyst(data, agent, ev, extras);
       checked += v.numbersChecked;
       blocked += v.unsupported.length;

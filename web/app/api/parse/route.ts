@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     method = "keywords";
     if (llmConfigured()) {
       try {
-        const { data } = await callJSON(PARSE_SYSTEM + fewShot(examples), text, 10000);
+        const { data } = await callJSON(PARSE_SYSTEM + fewShot(examples), text, 30000);
         const llm = cleanLlmRules(data, text);
         if (llm.length) {
           // LLM first; keep keyword rules for anything the LLM missed
