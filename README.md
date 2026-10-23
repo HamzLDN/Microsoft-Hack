@@ -38,6 +38,12 @@ Needs Python 3.11 and Node 20. On the hackathon Mac, Node lives in `~/.local/nod
 
 Check the AI key with `http://localhost:3000/api/llm-health`, and data sources with `http://localhost:5001/health`.
 
+## MCP (server-side, for the chatbot)
+
+The **Help** chat runs a **server-side MCP client** that spawns `mcp-server/` and calls tools (`get_quote`, `search_universe`, etc.) so answers use the data service, not guessed prices. Built automatically when you `npm run dev` or `npm run build` in `web/`.
+
+Set `FINNHUB_API_KEY` in `.env` when you have it for live quotes.
+
 ## Tests
 
 ```bash
