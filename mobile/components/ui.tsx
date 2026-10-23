@@ -44,6 +44,16 @@ export function Btn({ label, onPress, ghost, disabled }: { label: string; onPres
   );
 }
 
+export function Pill({ label, tone }: { label: string; tone: "good" | "bad" | "warn" | "blue" }) {
+  const bg = tone === "good" ? colors.goodsoft : tone === "bad" ? colors.badsoft : tone === "warn" ? colors.warnsoft : colors.baby;
+  const fg = tone === "good" ? colors.good : tone === "bad" ? colors.bad : tone === "warn" ? colors.warn : colors.accent;
+  return (
+    <View style={{ alignSelf: "flex-start", backgroundColor: bg, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+      <Text style={{ color: fg, fontSize: 12, fontWeight: "700" }}>{label}</Text>
+    </View>
+  );
+}
+
 export function Chip({ label, on, onPress, danger }: { label: string; on?: boolean; onPress: () => void; danger?: boolean }) {
   return (
     <Pressable onPress={onPress} style={[styles.chip, on && (danger ? styles.chipDanger : styles.chipOn)]}>

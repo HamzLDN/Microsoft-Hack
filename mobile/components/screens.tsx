@@ -4,11 +4,10 @@ import { api, money } from "../lib/api";
 import { colors } from "../lib/theme";
 import {
   AppRule,
-  DEFAULT_FORM,
   DEMO_TEXT,
   EXCLUDE_GROUPS,
   FormInput,
-  Portfolio,
+  savingsOf,
   THEMES,
   User,
 } from "../lib/types";
@@ -16,6 +15,24 @@ import { Bold, Btn, Chip, Field, Label, NumField, Paper, Title } from "./ui";
 
 const RISK = ["", "Very careful", "Very careful", "Careful", "Careful", "Balanced", "Balanced", "Adventurous", "Adventurous", "Very adventurous", "Very adventurous"];
 const PURPOSES = ["Grow it", "Income later", "Income now", "A one off goal"];
+const ONBOARD = ["About you", "Preferences", "Your rules"] as const;
+const MAX_HOLDING = [5, 10, 15, 20, "AI"] as const;
+
+export function OnboardingProgress({ current }: { current: 0 | 1 | 2 }) {
+  return (
+    <View style={styles.progress}>
+      {ONBOARD.map((label, i) => {
+        const state = i === current ? "now" : i < current ? "done" : "next";
+        return (
+          <View key={label} style={[styles.progressItem, state === "now" && styles.progressNow, state === "next" && styles.progressNext]}>
+            <Label>{state === "now" ? "Now" : state === "done" ? "Done" : "Next"}</Label>
+            <Text style={[styles.progressLabel, state === "now" && { color: colors.accent }]}>{label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 export function AuthScreen({ onDone }: { onDone: (u: User, token: string) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -34,12 +51,12 @@ export function AuthScreen({ onDone }: { onDone: (u: User, token: string) => voi
   };
   return (
     <ScrollView contentContainerStyle={styles.pad}>
-      <Label>Mandate</Label>
+      <Label>Bettervest</Label>
       <Text style={styles.hero}>
         Your rules.{"\n"}Your portfolio.{"\n"}
         <Text style={{ color: colors.accent }}>Every reason shown.</Text>
       </Text>
-      <Text style={styles.heroSub}>Tell us what you want and what you won&apos;t accept. We build a $100,000 portfolio around it.</Text>
+      <Text style={styles.heroSub}>Tell us what you want and what you won&apos;t accept. We build a portfolio around the budget you type in, and show the pros, cons and the rule behind every decision.</Text>
       <Paper style={{ marginTop: 20 }}>
         <Text style={styles.cardTitle}>{mode === "login" ? "Log in" : "Create your account"}</Text>
         <Field label="Email" value={email} onChange={setEmail} keyboard="email-address" />
@@ -57,15 +74,40 @@ export function AuthScreen({ onDone }: { onDone: (u: User, token: string) => voi
 }
 
 export function AboutScreen({ form, setForm, onNext }: { form: FormInput; setForm: (f: FormInput) => void; onNext: () => void }) {
+  const [budget, setBudget] = useState(String(savingsOf(form)));
   const set = (patch: Partial<FormInput>) => {
     const next = { ...form, ...patch };
     if ("age" in patch || "retireAge" in patch) next.horizon = Math.max(1, next.retireAge - next.age);
     setForm(next);
   };
+  const commitBudget = () => {
+    const n = Math.round(Number(budget));
+    const next = Number.isFinite(n) && n >= 100 ? n : savingsOf(form);
+    setBudget(String(next));
+    if (next !== form.savings) set({ savings: next });
+  };
   return (
     <ScrollView contentContainerStyle={styles.pad}>
-      <Title sub="This sets how long your money is invested for.">About you</Title>
+      <OnboardingProgress current={0} />
+      <Title sub="Your age sets how long the money is invested. The budget is the dollar amount the portfolio is built from.">About you</Title>
       <Paper>
+        <Text style={styles.fieldLabel}>Budget</Text>
+        <View style={styles.budget}>
+          <Text style={{ color: colors.muted, paddingLeft: 12 }}>$</Text>
+          <TextInput
+            value={budget}
+            keyboardType="number-pad"
+            style={styles.budgetInput}
+            onChangeText={(raw) => {
+              const digits = raw.replace(/[^0-9]/g, "");
+              setBudget(digits);
+              const n = Math.round(Number(digits));
+              if (n >= 100) set({ savings: n });
+            }}
+            onBlur={commitBudget}
+          />
+        </View>
+        <Text style={styles.mutedSm}>Type the amount you are investing. Holdings, bad year loss and the analysts use this, not a fixed $100,000.</Text>
         <NumField label="Your age" value={form.age} onChange={(age) => set({ age })} />
         <NumField label="Age you plan to retire" value={form.retireAge} onChange={(retireAge) => set({ retireAge })} />
         <NumField label="Years invested" value={form.horizon} onChange={(horizon) => set({ horizon: Math.max(1, horizon) })} />
@@ -77,7 +119,7 @@ export function AboutScreen({ form, setForm, onNext }: { form: FormInput; setFor
         </View>
       </Paper>
       <View style={{ marginTop: 16 }}>
-        <Btn label="Continue" onPress={onNext} />
+        <Btn label="Continue" onPress={() => { commitBudget(); onNext(); }} />
       </View>
     </ScrollView>
   );
@@ -91,17 +133,19 @@ export function PrefsScreen({ form, setForm, onBack, onNext }: { form: FormInput
         api<{ badYearLoss: number; typicalRange: [number, number]; split: { stocks: number; bonds: number } }>("/api/data/risk-preview", {
           horizon: form.horizon,
           risk: form.risk,
+          amount: savingsOf(form),
         })
           .then(setPreview)
           .catch(() => setPreview(null)),
       300,
     );
     return () => clearTimeout(t);
-  }, [form.horizon, form.risk]);
+  }, [form.horizon, form.risk, form.savings]);
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   return (
     <ScrollView contentContainerStyle={styles.pad}>
-      <Title sub="Set the basics, then add anything else in your own words.">What matters to you</Title>
+      <OnboardingProgress current={1} />
+      <Title sub="Set the basics, then add anything else in your own words.">Preferences</Title>
       <Paper style={{ marginBottom: 12 }}>
         <View style={styles.rowBetween}>
           <Text style={styles.fieldLabel}>How much ups and downs can you take?</Text>
@@ -117,10 +161,19 @@ export function PrefsScreen({ form, setForm, onBack, onNext }: { form: FormInput
         {preview && (
           <View style={styles.preview}>
             <Text style={{ color: colors.muted }}>
-              {preview.split.stocks}% shares, {preview.split.bonds}% bonds. Bad year (about 1 in 20): roughly {money(preview.badYearLoss)}.
+              {preview.split.stocks}% shares, {preview.split.bonds}% bonds.
+            </Text>
+            <Text style={{ marginTop: 6, color: colors.ink }}>
+              On a budget of {money(savingsOf(form))}, a bad year, roughly 1 in 20, could fall by about {money(preview.badYearLoss)}. In a typical year it could move between {money(preview.typicalRange[0])} and plus {money(preview.typicalRange[1])}.
             </Text>
           </View>
         )}
+        <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Max per holding</Text>
+        <View style={styles.chipRow}>
+          {MAX_HOLDING.map((v) => (
+            <Chip key={String(v)} label={v === "AI" ? "Let AI decide" : `${v}%`} on={form.maxHolding === v} onPress={() => setForm({ ...form, maxHolding: v })} />
+          ))}
+        </View>
       </Paper>
       <Paper style={{ marginBottom: 12 }}>
         <Text style={styles.fieldLabel}>Areas to favour</Text>
@@ -157,16 +210,17 @@ export function PrefsScreen({ form, setForm, onBack, onNext }: { form: FormInput
           <Btn label="Back" ghost onPress={onBack} />
         </View>
         <View style={{ flex: 1 }}>
-          <Btn label="Understand my preferences" onPress={onNext} />
+          <Btn label="Continue" onPress={onNext} />
         </View>
       </View>
     </ScrollView>
   );
 }
 
-export function LoadingScreen({ title, lines }: { title: string; lines: string[] }) {
+export function LoadingScreen({ title, lines, step }: { title: string; lines: string[]; step?: 0 | 1 | 2 }) {
   return (
     <View style={styles.loading}>
+      {step !== undefined ? <OnboardingProgress current={step} /> : null}
       <ActivityIndicator size="large" color={colors.accent} />
       <Text style={[styles.loadTitle, { marginTop: 16, textAlign: "center" }]}>{title}</Text>
       {lines.map((l) => (
@@ -178,21 +232,55 @@ export function LoadingScreen({ title, lines }: { title: string; lines: string[]
   );
 }
 
-export function RulesScreen({ rules, onBack, onNext }: { rules: AppRule[]; onBack: () => void; onNext: () => void }) {
+export function RulesScreen({ rules, setRules, onBack, onNext }: { rules: AppRule[]; setRules: (r: AppRule[]) => void; onBack: () => void; onNext: () => void }) {
+  const [draft, setDraft] = useState("");
+  const renumber = (r: AppRule[]) => r.map((x, i) => ({ ...x, id: `C${i + 1}` }));
+  const toggle = (i: number) => {
+    const before = rules[i];
+    const after = { ...before, kind: before.kind === "hard" ? "soft" : "hard", kindReason: "You changed this yourself" } as AppRule;
+    setRules(rules.map((r, j) => (j === i ? after : r)));
+    api("/api/feedback", { kind: "rule_kind_toggle", before, after }).catch(() => null);
+  };
+  const remove = (i: number) => {
+    api("/api/feedback", { kind: "rule_removed", before: rules[i], after: null }).catch(() => null);
+    setRules(renumber(rules.filter((_, j) => j !== i)));
+  };
+  const add = () => {
+    if (!draft.trim()) return;
+    const rule: AppRule = { id: "", text: draft.trim(), kind: "soft", field: "note", op: "==", value: draft.trim(), source: "text", kindReason: "Added by you. Noted, but we can't check this automatically", confidence: 1 };
+    api("/api/feedback", { kind: "rule_added", before: null, after: rule }).catch(() => null);
+    setRules(renumber([...rules, rule]));
+    setDraft("");
+  };
   return (
     <ScrollView contentContainerStyle={styles.pad}>
-      <Title sub="Each line is a rule your portfolio must follow.">Here&apos;s what we understood</Title>
-      {rules.map((r) => (
+      <OnboardingProgress current={2} />
+      <Title sub="These came from your form and from what you wrote. Tap Requirement or Preference to switch one, or remove anything that should not apply.">Here&apos;s what we understood</Title>
+      {rules.map((r, i) => (
         <Paper key={r.id + r.text} style={{ marginBottom: 10 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Text style={styles.ruleId}>{r.id}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "700", color: colors.ink }}>{r.text}</Text>
-              <Text style={styles.mutedSm}>{r.kind === "hard" ? "Hard rule" : "Preference"} · {r.kindReason}</Text>
+              <Text style={styles.mutedSm}>{r.quote ? `From your words: “${r.quote}”` : "From the form"}</Text>
+              <Text style={styles.mutedSm}>{r.kindReason}</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                <Pressable onPress={() => toggle(i)} style={[styles.kind, r.kind === "hard" ? styles.kindHard : styles.kindSoft]}>
+                  <Text style={{ color: r.kind === "hard" ? colors.bad : colors.warn, fontWeight: "700", fontSize: 12 }}>{r.kind === "hard" ? "Requirement" : "Preference"}</Text>
+                </Pressable>
+                <Pressable onPress={() => remove(i)}>
+                  <Text style={{ color: colors.muted, padding: 4 }}>Remove</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </Paper>
       ))}
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+        <TextInput value={draft} onChangeText={setDraft} placeholder="Add a rule in your own words" style={[styles.input, { flex: 1 }]} />
+        <Btn label="Add" ghost onPress={add} />
+      </View>
+      <Text style={styles.mutedSm}>Requirement rules a company out. Preference only changes its score.</Text>
       <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
         <View style={{ flex: 1 }}>
           <Btn label="Back" ghost onPress={onBack} />
@@ -205,30 +293,10 @@ export function RulesScreen({ rules, onBack, onNext }: { rules: AppRule[]; onBac
   );
 }
 
-export function PortfolioScreen({ p, onHelp }: { p: Portfolio; onHelp: () => void }) {
-  const total = p.holdings.reduce((s, h) => s + h.amount, 0);
-  return (
-    <ScrollView contentContainerStyle={styles.pad}>
-      <Title sub={`${p.holdings.length} holdings · $${Math.round(total).toLocaleString()}`}>Your portfolio</Title>
-      {p.holdings.map((h) => (
-        <Paper key={h.ticker} style={{ marginBottom: 10 }}>
-          <View style={styles.rowBetween}>
-            <Text style={{ fontWeight: "700", fontSize: 17 }}>{h.name}</Text>
-            <Text style={{ color: colors.accent, fontWeight: "700" }}>{total ? ((h.amount / total) * 100).toFixed(1) : 0}%</Text>
-          </View>
-          <Text style={styles.mutedSm}>{h.ticker} · {money(h.amount)}</Text>
-          <Text style={{ marginTop: 6, color: colors.muted, fontSize: 14 }}>{h.mainReason}</Text>
-        </Paper>
-      ))}
-      <Btn label="Ask about this portfolio" ghost onPress={onHelp} />
-    </ScrollView>
-  );
-}
-
 export function HelpModal({ open, onClose, context }: { open: boolean; onClose: () => void; context: string }) {
   const [q, setQ] = useState("");
   const [msgs, setMsgs] = useState<{ role: "user" | "assistant"; content: string }[]>([
-    { role: "assistant", content: "Ask about any metric, or a **live price** (try **iShares TIPS Bond**)." },
+    { role: "assistant", content: "I'm the Bettervest assistant. Ask what anything on screen means, or name a stock or ETF and I'll look up the price." },
   ]);
   const [busy, setBusy] = useState(false);
   const send = async () => {
@@ -286,6 +354,16 @@ const styles = StyleSheet.create({
   sliderDot: { width: 24, height: 8, borderRadius: 4, backgroundColor: colors.baby },
   sliderDotOn: { backgroundColor: colors.accent },
   preview: { backgroundColor: colors.sky, padding: 12, borderRadius: 10, marginTop: 8 },
+  progress: { flexDirection: "row", gap: 8, marginBottom: 16, alignSelf: "stretch" },
+  progressItem: { flex: 1, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, borderRadius: 12, padding: 8 },
+  progressNow: { borderColor: colors.accent, backgroundColor: colors.baby },
+  progressNext: { borderStyle: "dashed", opacity: 0.7 },
+  progressLabel: { fontFamily: "Newsreader_600SemiBold", fontSize: 13, color: colors.ink },
+  budget: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.line, borderRadius: 10, backgroundColor: colors.paper, marginTop: 4 },
+  budgetInput: { flex: 1, padding: 10, fontSize: 16, color: colors.ink },
+  kind: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  kindHard: { backgroundColor: colors.badsoft },
+  kindSoft: { backgroundColor: colors.warnsoft },
   textarea: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.paper, borderRadius: 10, padding: 12, minHeight: 88, textAlignVertical: "top", fontFamily: "SourceSans3_400Regular", color: colors.ink },
   loading: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.paper },
   loadTitle: { fontFamily: "Newsreader_600SemiBold", fontSize: 28, color: colors.ink },
