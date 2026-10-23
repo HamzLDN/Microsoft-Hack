@@ -3,8 +3,8 @@ import type { AnalystOutput, Candidate, Rule } from "./types";
 
 export type Decision = { include: boolean; scoreNudge: number; disagree: boolean; summary: string; pros: string[]; cons: string[] };
 
-const VOTE_ORDER = ["fundamentals", "markets", "fit"] as const;
-const VOTE_NAME: Record<(typeof VOTE_ORDER)[number], string> = { fundamentals: "Fundamentals", markets: "Markets", fit: "Client fit" };
+const VOTE_ORDER = ["bull", "bear", "judge"] as const;
+const VOTE_NAME: Record<(typeof VOTE_ORDER)[number], string> = { bull: "Bull", bear: "Bear", judge: "Judge" };
 
 export type VoteTally = { include: number; neutral: number; exclude: number; majority: "include" | "exclude" | "neutral" | "split"; summary: string };
 

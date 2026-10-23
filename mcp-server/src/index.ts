@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** MCP server: Mandate data service tools for reliable quotes and metrics (Finnhub or yfinance via Flask). */
+/** MCP server: Bettervest data service tools for reliable quotes and metrics (Finnhub or yfinance via Flask). */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import * as z from "zod/v4";
@@ -39,7 +39,7 @@ const server = new McpServer({ name: "mandate-data", version: "0.1.0" });
 server.registerTool(
   "search_universe",
   {
-    description: "Find tickers in Mandate's investable universe by company or ETF name (fuzzy match).",
+    description: "Find tickers in Bettervest's investable universe by company or ETF name (fuzzy match).",
     inputSchema: { query: z.string().describe("Natural language, e.g. iShares TIPS bond") },
   },
   async ({ query }) => {
@@ -56,7 +56,7 @@ server.registerTool(
 server.registerTool(
   "get_quote",
   {
-    description: "Current share price for a ticker in Mandate's universe (Finnhub when configured, else cached yfinance).",
+    description: "Current share price for a ticker in Bettervest's universe (Finnhub when configured, else cached yfinance).",
     inputSchema: { ticker: z.string().describe("Symbol, e.g. TIP") },
   },
   async ({ ticker }) => {

@@ -5,11 +5,11 @@ import { db, save } from "./db";
 const COOKIE = "mandate_session";
 const SECRET = process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "mandate-dev-secret";
 // Seeded demo accounts (test credentials for the hackathon demo, also listed in the README)
-export const DEMO_EMAIL = "demo@mandate.app";
+export const DEMO_EMAIL = "demo@bettervest.app";
 const DEMO_PASSWORD = "demo1234";
 const DEMO_USERS = [
   { id: "demo", email: DEMO_EMAIL },
-  { id: "john", email: "john.doe@mandate.app" },
+  { id: "john", email: "john.doe@bettervest.app" },
 ];
 
 const hashPw = (pw: string, salt: string) => crypto.scryptSync(pw, salt, 32).toString("hex");
@@ -20,6 +20,8 @@ export function ensureDemoUser() {
   let added = false;
   for (const u of DEMO_USERS) {
     if (d.users.some((x) => x.email === u.email)) continue;
+    const renamed = d.users.find((x) => x.id === u.id);
+    if (renamed) { renamed.email = u.email; added = true; continue; } // demo account moved to the Bettervest address
     const salt = crypto.randomBytes(8).toString("hex");
     d.users.push({ id: u.id, email: u.email, salt, hash: hashPw(DEMO_PASSWORD, salt), createdAt: new Date().toISOString() });
     added = true;

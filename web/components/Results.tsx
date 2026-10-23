@@ -83,7 +83,7 @@ export function Funnel({ p }: { p: Portfolio }) {
 type Trust = { correctionRate: number | null; correctionsStored: number; learned: { notes: string[] } | null;
   stats: { analystRuns: number; firstTryPass: number; retried: number; fallbacks: number; numbersChecked: number; unsupportedBlocked: number }; evals: any };
 
-type Committee = { status: "idle" | "running" | "done" | "failed"; changes?: { ticker: string; name: string; kind: string; before: number; after: number; scoreBefore: number; scoreAfter: number; reason: string; speaker: string }[]; items?: { ticker: string; debate: { finalStances: Record<string, string>; shifts: unknown[] } }[]; sessionId?: string; reviewed?: number };
+type Committee = { status: "idle" | "running" | "done" | "failed"; changes?: { ticker: string; name: string; kind: string; before: number; after: number; scoreBefore: number; scoreAfter: number; reason: string; speaker: string }[]; items?: { ticker: string; debate: { finalStances: Record<string, string>; shifts: unknown[] }; ic?: { verdict: { decision: string } } }[]; sessionId?: string; reviewed?: number };
 
 export function CommitteeCard({ c, onOpen, onRerun }: { c: Committee; onOpen: (t: string) => void; onRerun: () => void }) {
   const verb: Record<string, string> = { added: "Added", dropped: "Dropped", increased: "Increased", decreased: "Trimmed" };
@@ -91,7 +91,7 @@ export function CommitteeCard({ c, onOpen, onRerun }: { c: Committee; onOpen: (t
     <div className="paper border-accent/40 p-5 shadow-paper">
       <div className="flex items-baseline justify-between"><p className="label !text-accent">Committee review</p>
         {c.status === "done" && <a className="text-xs font-semibold text-accent" href={`/backstage#${c.sessionId}`} target="_blank">Full discussion</a>}</div>
-      {c.status === "running" && <p className="mt-2 animate-pulse text-sm">Three analysts are reviewing each holding and the closest misses, then debating them…</p>}
+      {c.status === "running" && <p className="mt-2 animate-pulse text-sm">The Bull and Bear analysts are researching each holding and the closest misses, cross examining each other, then the Judge rules. About two minutes…</p>}
       {c.status === "failed" && <p className="mt-2 text-sm text-bad">The review could not finish. <button className="font-semibold text-accent" onClick={onRerun}>Try again</button></p>}
       {c.status === "idle" && <button className="btn mt-2" onClick={onRerun}>Run committee review</button>}
       {c.status === "done" && (
@@ -122,10 +122,9 @@ export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, o
 }) {
   const dissent = (t: string) => {
     const it = committee.items?.find((x) => x.ticker === t);
-    if (!it) return null;
-    const st = Object.values(it.debate.finalStances);
-    const against = st.filter((s) => s === "exclude").length;
-    return against ? <Pill tone="warn">{against} of 3 analysts against</Pill> : st.every((s) => s === "include") ? <Pill tone="good">Committee agrees</Pill> : null;
+    const v = it?.ic?.verdict;
+    if (!v) return null;
+    return v.decision === "BUY" ? <Pill tone="good">Judge: BUY</Pill> : v.decision === "HOLD" ? <Pill tone="blue">Judge: HOLD</Pill> : <Pill tone="bad">{v.decision === "REJECTED" ? "Rejected" : "Judge: SELL"}</Pill>;
   };
   const loss = rules.find((r) => r.field === "max_bad_year_loss");
   return (

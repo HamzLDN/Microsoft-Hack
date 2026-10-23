@@ -44,7 +44,7 @@ export default function Home() {
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 3800); };
   const ask = (q: string) => setHelp({ open: true, prefill: `${q} ` + "​".repeat(Math.random() * 5) });
-  const client = `Age ${form.age}, retiring at ${form.retireAge}, investing $${savingsOf(form).toLocaleString("en-US")} for ${form.horizon} years. Goal: ${form.purpose}. Rules: ${rules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
+  const client = `Investing $${savingsOf(form).toLocaleString("en-US")} for ${form.horizon} years. Goal: ${form.purpose}. Rules: ${rules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +123,7 @@ export default function Home() {
   const runCommittee = async (nextRules?: AppRule[], f?: FormInput, quiet = false) => {
     const useRules = nextRules ?? rules;
     const useForm = f ?? form;
-    const brief = `Age ${useForm.age}, retiring at ${useForm.retireAge}, investing $${savingsOf(useForm).toLocaleString("en-US")} for ${useForm.horizon} years. Goal: ${useForm.purpose}. Rules: ${useRules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
+    const brief = `Investing $${savingsOf(useForm).toLocaleString("en-US")} for ${useForm.horizon} years. Goal: ${useForm.purpose}. Rules: ${useRules.map((r) => `${r.id} ${r.text} (${r.kind === "hard" ? "hard rule" : "preference"})`).join("; ")}`;
     setCommittee({ status: "running" });
     try {
       const r = await api("/api/committee", { request: { rules: useRules, horizon: useForm.horizon, risk: useForm.risk, maxHolding: useForm.maxHolding, overrides, weights, amount: savingsOf(useForm) }, client: brief });

@@ -17,3 +17,6 @@ web/.next/
 web/tsconfig.tsbuildinfo
 web/eval-results.json
 actions-runner/
+
+# large local archives
+*.zip

@@ -1,7 +1,7 @@
 export type { AnalystOutput, Candidate, Evidence, Portfolio, Rule, ScoreBreakdown } from "@shared/contract";
 import type { Rule } from "@shared/contract";
 
-export type AgentName = "fundamentals" | "markets" | "fit";
+export type AgentName = "bull" | "bear" | "judge";
 export type AppRule = Rule & { learnedFrom?: number };
 
 export type FormInput = {

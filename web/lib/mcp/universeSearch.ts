@@ -28,7 +28,7 @@ function scoreQuery(query: string, entry: UniverseEntry): number {
   return score;
 }
 
-/** Best match in Mandate's investable universe from a messy natural-language query. */
+/** Best match in Bettervest's investable universe from a messy natural-language query. */
 export function searchUniverse(query: string, entries: UniverseEntry[], limit = 3): { entry: UniverseEntry; score: number }[] {
   return entries
     .map((entry) => ({ entry, score: scoreQuery(query, entry) }))

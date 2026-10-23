@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     return reply(req, { reply: text }, { mode, question: q, reply: text, offline: true });
   }
 
-  const role = AGENTS[agent ?? "fundamentals"];
+  const role = AGENTS[agent ?? "judge"];
   const ev = evidence.filter(role.ids);
   if (!llmConfigured()) { const text = explainFromData(q, ev, role.title); return reply(req, { reply: text, offline: true }, { mode, agent, ticker, question: q, reply: text, offline: true }); }
   const sys = `You are the ${role.title} on this client's investment committee. You focus on ${role.focus}.

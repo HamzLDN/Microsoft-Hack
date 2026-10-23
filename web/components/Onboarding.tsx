@@ -97,12 +97,12 @@ export function AboutScreen({ form, setForm, onNext }: { form: FormInput; setFor
   return (
     <Screen k="about">
       <OnboardingProgress current={0} />
-      <Title sub="Your age sets how long the money is invested. The budget is the dollar amount the portfolio is built from.">About you</Title>
-      <div className="paper grid max-w-3xl gap-5 p-6 sm:grid-cols-3">
-        <label className="text-sm font-semibold sm:col-span-3">Budget
+      <Title sub="How much you are investing and for how long. Everything else is built around these two numbers.">About you</Title>
+      <div className="paper grid max-w-3xl gap-5 p-6 sm:grid-cols-2">
+        <label className="text-sm font-semibold">Amount you plan to invest
           <span className="mt-1 flex items-center rounded-lg border border-line bg-paper">
             <span className="pl-3 text-muted">$</span>
-            <input aria-label="Budget in dollars" inputMode="numeric" className="num w-full bg-transparent p-2.5" value={budget}
+            <input aria-label="Amount you plan to invest, in dollars" inputMode="numeric" className="num w-full bg-transparent p-2.5" value={budget}
               onChange={(e) => {
                 const raw = e.target.value.replace(/[^0-9]/g, "");
                 setBudget(raw);
@@ -111,12 +111,12 @@ export function AboutScreen({ form, setForm, onNext }: { form: FormInput; setFor
               }}
               onBlur={commitBudget} />
           </span>
-          <span className="mt-1 block font-normal text-muted">Type the amount you are investing. Holdings, bad year loss and the analysts use this, not a fixed $100,000.</span>
+          <span className="mt-1 block font-normal text-muted">Holdings, bad year loss and the analysts all use this amount.</span>
         </label>
-        <label className="text-sm font-semibold">Your age<input type="number" className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5 num" value={form.age} onChange={(e) => set({ age: +e.target.value })} /></label>
-        <label className="text-sm font-semibold">Age you plan to retire<input type="number" className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5 num" value={form.retireAge} onChange={(e) => set({ retireAge: +e.target.value })} /></label>
-        <label className="text-sm font-semibold">Years invested<Info term="Horizon" /><input type="number" min={1} className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5 num" value={form.horizon} onChange={(e) => set({ horizon: Math.max(1, +e.target.value) })} /></label>
-        <div className="sm:col-span-3">
+        <label className="text-sm font-semibold">Years invested<Info term="Horizon" /><input type="number" min={1} className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5 num" value={form.horizon} onChange={(e) => set({ horizon: Math.max(1, +e.target.value) })} />
+          <span className="mt-1 block font-normal text-muted">How long until you need the money.</span>
+        </label>
+        <div className="sm:col-span-2">
           <p className="text-sm font-semibold">What is the money for?</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {purposes.map((p) => <button key={p} type="button" className={`chip ${form.purpose === p ? "chip-on" : ""}`} onClick={() => set({ purpose: p })}>{p}</button>)}

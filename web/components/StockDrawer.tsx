@@ -2,21 +2,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { METRIC_TERMS } from "@/lib/ai/glossary";
-import { decide } from "@/lib/decision";
-import type { AgentName, AnalystOutput, AppRule, Candidate, Evidence, Portfolio } from "@/lib/types";
+import type { IC } from "@/lib/ai/ic";
+import type { AppRule, Candidate, Evidence, Portfolio } from "@/lib/types";
+import { CommitteeView, type Ask } from "./CommitteeView";
 import { api, Bold, Info, money, Pill } from "./ui";
 
-const AGENTS: { key: AgentName; title: string; tag: string; color: string }[] = [
-  { key: "fundamentals", title: "Fundamentals analyst", tag: "filings and financials", color: "#2F7FC1" },
-  { key: "markets", title: "Markets and news analyst", tag: "prices, news, economy", color: "#7A86C8" },
-  { key: "fit", title: "Client fit analyst", tag: "your rules", color: "#3E8E7E" },
-];
 const RANGES = ["1W", "1M", "6M", "1Y", "5Y"];
-type Run = { output: AnalystOutput; evidence: Evidence[]; attempts: number; provider?: string };
-type Turn = { from: AgentName; to: AgentName | "committee"; kind: "agree" | "challenge" | "question" | "summary"; text: string; evidenceIds: string[]; model: string };
-type Debate = { turns: Turn[]; finalStances: Record<AgentName, AnalystOutput["stance"]>; shifts: { agent: AgentName; from: string; to: string; reason: string }[]; fallback: boolean };
-type CommitteeItem = { round1: AnalystOutput[]; models: string[]; debate: Debate; adjustment: number; evidence: Evidence[]; before: { status: string; amount: number; score: number }; after?: { status: string; amount: number; score: number } };
-type Msg = { role: "user" | "assistant"; content: string };
+type CommitteeItem = { ic: IC; evidence?: Evidence[]; before: { status: string; amount: number; score: number }; after?: { status: string; amount: number; score: number } };
 
 function Chart({ points }: { points: [string, number][] }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -40,58 +32,6 @@ function Chart({ points }: { points: [string, number][] }) {
   return <div ref={ref} className="w-full" />;
 }
 
-function AnalystCard({ a, run, onAsk }: { a: (typeof AGENTS)[number]; run?: Run; onAsk: (agent: AgentName, msgs: Msg[]) => Promise<string> }) {
-  const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [q, setQ] = useState("");
-  const [busy, setBusy] = useState(false);
-  const send = async () => {
-    if (!q.trim() || !run) return;
-    const next = [...msgs, { role: "user" as const, content: q }];
-    setMsgs(next); setQ(""); setBusy(true);
-    const reply = await onAsk(a.key, next).catch(() => "I couldn't answer that just now.");
-    setMsgs([...next, { role: "assistant", content: reply }]); setBusy(false);
-  };
-  return (
-    <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-[40px_1fr] gap-3">
-      <div className="grid h-10 w-10 place-items-center rounded-xl font-serif text-lg font-semibold text-white" style={{ background: a.color }}>{a.title[0]}</div>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold">{a.title} <span className="font-normal text-muted">· {a.tag}</span>
-          {run && <span className="ml-2">{run.output.stance === "include" ? <Pill tone="good">Leans include</Pill> : run.output.stance === "exclude" ? <Pill tone="bad">Leans exclude</Pill> : <Pill tone="warn">Neutral</Pill>}</span>}
-        </p>
-        <button type="button" onClick={() => run && setOpen(!open)} className="mt-1 block w-full rounded-xl border border-line bg-card p-3 text-left text-sm transition hover:border-accent">
-          {!run ? <span className="block animate-pulse text-muted">Reviewing the evidence…</span> : (
-            <>
-              <ul className="grid gap-1.5">
-                {run.output.points.map((p, i) => (
-                  <li key={i} className="flex gap-2"><span className={p.polarity === "pro" ? "text-good" : "text-bad"}>{p.polarity === "pro" ? "+" : "−"}</span>
-                    <span><Bold text={p.text} /> {p.evidenceIds.map((id) => { const e = run.evidence.find((x) => x.id === id); return <span key={id} title={e ? `${e.label}: ${e.value} (${e.source}, ${e.asOf})` : id} className="num ml-1 rounded bg-sky px-1 text-[10px] text-accent">{id}</span>; })}</span></li>
-                ))}
-              </ul>
-              {run.output.fallback && <p className="mt-2 text-xs text-muted">Summary generated directly from the data.</p>}
-              <p className="mt-2 text-xs font-semibold text-accent">{open ? "Hide conversation" : "Ask this analyst a follow up"}</p>
-            </>
-          )}
-        </button>
-        <AnimatePresence>
-          {open && run && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="mt-2 grid gap-2 rounded-xl bg-sky p-3 text-sm">
-                {msgs.map((m, i) => <p key={i} className={`whitespace-pre-line rounded-lg p-2 ${m.role === "user" ? "ml-8 bg-card" : "mr-8 bg-baby"}`}><Bold text={m.content} /></p>)}
-                {busy && <p className="animate-pulse text-muted">Thinking…</p>}
-                <div className="flex gap-2">
-                  <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Why do you say that?" className="flex-1 rounded-lg border border-line bg-card p-2" />
-                  <button className="btn px-3 py-2" onClick={send}>Ask</button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  );
-}
-
 export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, onReweight, committeeItem }: {
   ticker: string | null; p: Portfolio | null; rules: AppRule[]; client: string; shown: string[]; onClose: () => void; onAsk: (q: string) => void; onReweight: (w: Record<string, number>) => void;
   committeeItem?: CommitteeItem;
@@ -101,15 +41,13 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
   const [points, setPoints] = useState<[string, number][]>([]);
   const [quote, setQuote] = useState<{ price: number; changePct: number; live: boolean } | null>(null);
   const [metrics, setMetrics] = useState<Record<string, { value: number; source: string; asOf: string }>>({});
-  const [runs, setRuns] = useState<Partial<Record<AgentName, Run>>>({});
-  const [weights, setWeights] = useState<Record<string, number> | null>(null);
-  const [debate, setDebate] = useState<Debate | null>(null);
+  const [run, setRun] = useState<{ ic: IC; evidence: Evidence[] } | null>(null);
   const [showAI, setShowAI] = useState(false);
 
   useEffect(() => { if (ticker) api(`/api/data/history/${ticker}?range=${range}`).then((r) => setPoints(r.points)).catch(() => setPoints([])); }, [ticker, range]);
   useEffect(() => {
     if (!ticker) return;
-    setRuns({}); setMetrics({}); setQuote(null); setWeights(null); setRange("1Y"); setDebate(null); setShowAI(false);
+    setRun(null); setMetrics({}); setQuote(null); setRange("1Y"); setShowAI(false);
     api(`/api/data/metrics/${ticker}`).then((r) => setMetrics(r.metrics)).catch(() => null);
     const q = () => api(`/api/data/quote/${ticker}`).then(setQuote).catch(() => null);
     q();
@@ -117,37 +55,19 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
     return () => clearInterval(t);
   }, [ticker]);
   useEffect(() => {
-    // Analysts only run when the user opens the AI analysis
-    if (!c || !p || !showAI) return;
-    if (committeeItem) {
-      setRuns(Object.fromEntries(committeeItem.round1.map((o, i) => [o.agent, { output: o, evidence: committeeItem.evidence, attempts: 1, provider: committeeItem.models[i] }])));
-      setDebate(committeeItem.debate);
-      return;
-    }
-    for (const a of AGENTS) {
-      api("/api/analysis", { agent: a.key, candidate: c, rules, badYearLoss: p.badYearLoss, client })
-        .then((r) => setRuns((x) => ({ ...x, [a.key]: { output: r.output, evidence: r.evidence, attempts: r.attempts, provider: r.provider } })))
-        .catch(() => null);
-    }
+    // The committee only runs when the user opens it; a company the review already covered loads instantly
+    if (!c || !p || !showAI || run) return;
+    if (committeeItem?.ic) { setRun({ ic: committeeItem.ic, evidence: committeeItem.evidence ?? [] }); return; }
+    api("/api/ic", { candidate: c, rules, badYearLoss: p.badYearLoss, client }).then((r) => setRun({ ic: r.ic, evidence: r.evidence })).catch(() => null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c?.ticker, showAI]);
 
-  const done = AGENTS.map((a) => runs[a.key]).filter(Boolean) as Run[];
-  useEffect(() => {
-    if (!c || done.length !== 3 || debate) return;
-    api<Debate>("/api/debate", { candidate: c, round1: done.map((r) => r.output), evidence: done[0].evidence, client }).then(setDebate).catch(() => null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [done.length, c?.ticker]);
-  const finalOutputs = done.map((r) => (debate ? { ...r.output, stance: debate.finalStances[r.output.agent] ?? r.output.stance } : r.output));
-  const decision = c && done.length === 3 && debate ? decide(c, finalOutputs, rules) : null;
-  const askAnalyst = async (agent: AgentName, messages: Msg[]) => {
-    const r = runs[agent];
-    const view = r ? r.output.points.map((p) => `${p.polarity === "pro" ? "+" : "minus"} ${p.text}`).join("; ") : "";
-    return (await api("/api/chat", { mode: "analyst", agent, ticker: c?.ticker, evidence: r?.evidence ?? [], client, view, messages })).reply as string;
+  const askAgent: Ask = async (agent, messages) => {
+    const t = agent === "judge" ? null : run?.ic.theses[agent];
+    const view = agent === "judge" ? `Verdict ${run?.ic.verdict.decision}: ${run?.ic.verdict.reasoning}` : t ? t.points.map((x) => `${x.polarity === "pro" ? "+" : "minus"} ${x.text}`).join("; ") : "";
+    return (await api("/api/chat", { mode: "analyst", agent, ticker: c?.ticker, evidence: run?.evidence ?? [], client, view, messages })).reply as string;
   };
   const fmt = (k: string, v: number) => (k === "price" ? `$${v.toFixed(2)}` : k === "mcap" ? `$${v.toFixed(0)}B` : ["pe", "beta", "debtToEquity"].includes(k) ? v.toFixed(2) : `${v.toFixed(1)}%`);
-  const parts = c?.score.parts ?? [];
-  const w = weights ?? Object.fromEntries(parts.map((x) => [x.name, x.weight]));
 
   return (
     <AnimatePresence>
@@ -194,62 +114,16 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
 
             {!showAI ? (
               <section className="mt-6 rounded-xl border border-line bg-card p-4">
-                <p className="font-semibold">AI analysis and committee discussion</p>
-                <p className="mt-1 text-sm text-muted">Three specialist analysts give their views on {c.name}, then discuss it with each other. You can question any of them.</p>
-                <button className="btn mt-3" onClick={() => setShowAI(true)}>Show AI analysis</button>
+                <p className="font-semibold">Investment committee</p>
+                <p className="mt-1 text-sm text-muted">A Bull and a Bear analyst argue the case for and against {c.name} using only cited data, a circuit breaker stops the run on any compliance or data problem, and a neutral Judge gives the verdict.</p>
+                <button className="btn mt-3" onClick={() => setShowAI(true)}>Show committee review</button>
               </section>
             ) : (
-              <>
-            <section className="mt-6"><p className="label mb-3">AI analysis · round 1 · each specialist&apos;s view</p>
-              <div className="grid gap-4">{AGENTS.map((a) => <AnalystCard key={a.key} a={a} run={runs[a.key]} onAsk={askAnalyst} />)}</div>
-            </section>
-
-            {done.length === 3 && (
               <section className="mt-6">
-                <p className="label mb-3">Round 2 · committee discussion</p>
-                {!debate ? <p className="animate-pulse text-sm text-muted">The analysts are reading each other&apos;s views…</p> : (
-                  <div className="grid gap-3 rounded-xl border border-line bg-card p-4">
-                    {debate.turns.map((t, i) => {
-                      const from = AGENTS.find((a) => a.key === t.from)!;
-                      const to = t.to === "committee" ? "the committee" : AGENTS.find((a) => a.key === t.to)!.title;
-                      return (
-                        <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.35 }} className="grid grid-cols-[32px_1fr] gap-3">
-                          <div className="grid h-8 w-8 place-items-center rounded-lg font-serif font-semibold text-white" style={{ background: from.color }}>{from.title[0]}</div>
-                          <div className="min-w-0">
-                            <p className="text-xs text-muted"><b className="text-ink">{from.title}</b> to {to} · {t.kind === "challenge" ? <span className="text-bad">challenges</span> : t.kind === "agree" ? <span className="text-good">agrees</span> : t.kind === "question" ? <span className="text-warn">asks</span> : "sums up"} <span className="num ml-1 rounded bg-sky px-1.5 text-[10px] text-accent">{t.model}</span></p>
-                            <p className="mt-1 rounded-xl rounded-tl-sm bg-sky p-3 text-sm"><Bold text={t.text} /> {t.evidenceIds.map((id) => <span key={id} className="num ml-1 rounded bg-card px-1 text-[10px] text-accent">{id}</span>)}</p>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                    {debate.shifts?.length > 0 && (
-                      <div className="rounded-lg border border-warn/40 bg-warnsoft p-3 text-sm">
-                        <p className="label !text-warn">Minds changed</p>
-                        {debate.shifts.map((x) => <p key={x.agent} className="mt-1"><b>{AGENTS.find((a) => a.key === x.agent)!.title}</b>: {x.from} to <b>{x.to}</b>{x.reason ? `, because ${x.reason.charAt(0).toLowerCase()}${x.reason.slice(1)}` : ""}.</p>)}
-                      </div>
-                    )}
-                    {committeeItem?.after && (
-                      <div className="rounded-lg bg-baby p-3 text-sm">
-                        <p className="label !text-accent">Effect on the portfolio</p>
-                        <p className="mt-1">Committee score change <b className="num">{committeeItem.adjustment > 0 ? "plus" : committeeItem.adjustment < 0 ? "minus" : ""} {Math.abs(committeeItem.adjustment)}</b> · score <span className="num">{Math.round(committeeItem.before.score)} to {Math.round(committeeItem.after.score)}</span> · amount <span className="num">{money(committeeItem.before.amount)} to {money(committeeItem.after.amount)}</span>{committeeItem.before.status !== committeeItem.after.status ? ` · now ${committeeItem.after.status}` : ""}</p>
-                      </div>
-                    )}
-                    <p className="text-xs text-muted">After the discussion: {AGENTS.map((a) => `${a.title.split(" ")[0]} leans ${debate.finalStances[a.key]}`).join(" · ")}.{debate.fallback ? " Discussion generated from the data while the AI key is not connected." : ""}</p>
-                  </div>
-                )}
+                <div className="mb-3 flex items-baseline justify-between"><p className="label">Investment committee</p><button className="text-sm font-semibold text-accent" onClick={() => setShowAI(false)}>Hide</button></div>
+                {!run ? <p className="animate-pulse text-sm text-muted">Bull and Bear are researching, then they cross examine each other. This takes about a minute…</p>
+                  : <CommitteeView ic={run.ic} evidence={run.evidence} onAsk={askAgent} effect={committeeItem?.after ? { before: committeeItem.before, after: committeeItem.after } : undefined} />}
               </section>
-            )}
-
-            {decision && (
-              <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-5 rounded-xl border-2 border-accent bg-sky p-4">
-                <p className="label !text-accent">Decision</p>
-                <p className="mt-1"><Bold text={decision.summary} /></p>
-                {decision.disagree && <p className="mt-2"><Pill tone="warn">Analysts disagree</Pill> <span className="text-sm text-muted">Two analysts lean the other way. Read both views above.</span></p>}
-                <p className="mt-2 text-xs text-muted">The decision follows your rules and the score. Analysts can move the score by at most 5 points ({decision.scoreNudge >= 0 ? "plus" : "minus"} {Math.abs(decision.scoreNudge)} here) and can never override a hard rule.</p>
-              </motion.section>
-            )}
-                <button className="mt-4 text-sm font-semibold text-accent" onClick={() => setShowAI(false)}>Hide AI analysis</button>
-              </>
             )}
           </motion.aside>
         </>

@@ -1,4 +1,4 @@
-# Mandate data service
+# Bettervest data service
 
 Flask on port 5001. Market data, caching, metrics, evidence packs, scoring and the portfolio engine.
 

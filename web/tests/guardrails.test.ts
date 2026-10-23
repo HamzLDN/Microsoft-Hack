@@ -24,38 +24,40 @@ describe("guardrails", () => {
     expect(numberSupported(37.5, allowed)).toBe(false);
   });
   it("passes a valid output", () => {
-    expect(validateAnalyst(good, "fundamentals", ev).ok).toBe(true);
+    expect(validateAnalyst(good, "bull", ev).ok).toBe(true);
   });
   it("catches an invented number", () => {
     const bad = { ...good, points: [good.points[0], { ...good.points[1], text: "Sales grew **37.5%**." }] };
-    const r = validateAnalyst(bad, "fundamentals", ev);
+    const r = validateAnalyst(bad, "bull", ev);
     expect(r.ok).toBe(false);
     expect(r.unsupported).toContain(37.5);
   });
   it("catches a missing evidence id", () => {
     const bad = { ...good, points: [good.points[0], { ...good.points[1], evidenceIds: ["E99"] }] };
-    expect(validateAnalyst(bad, "fundamentals", ev).errors.join()).toMatch(/E99/);
+    expect(validateAnalyst(bad, "bull", ev).errors.join()).toMatch(/E99/);
   });
   it("requires a pro and a con", () => {
     const bad = { ...good, points: [good.points[0], { ...good.points[0] }] };
-    expect(validateAnalyst(bad, "fundamentals", ev).errors.join()).toMatch(/con/);
+    expect(validateAnalyst(bad, "bull", ev).errors.join()).toMatch(/con/);
   });
   it("rejects malformed shapes", () => {
-    expect(validateAnalyst({ stance: "maybe" }, "fundamentals", ev).ok).toBe(false);
+    expect(validateAnalyst({ stance: "maybe" }, "bull", ev).ok).toBe(false);
   });
 });
 
 import { fallback } from "@/lib/ai/analysts";
 describe("data fallback", () => {
-  it("always returns at least one pro and one con, at most 5 points", () => {
+  it("bull argues for, bear argues against, at most 5 points, every claim cited", () => {
     const c = { ticker: "X", name: "X", sector: "S", type: "stock", status: "included", amount: 8700, mainReason: "", pros: [], cons: [], checks: [],
       score: { total: 70, parts: [], ruleAdjustments: [] } } as any;
     const ev = [1, 2, 3, 4, 5, 6].map((i) => ({ id: `R${i}`, ticker: "X", label: `C${i} rule: passes. ok`, value: 1, unit: "count", source: "Engine", asOf: "now" }) as const)
       .concat([{ id: "A1", ticker: "X", label: "Amount", value: 8700, unit: "$", source: "Engine", asOf: "now" } as any, { id: "A2", ticker: "X", label: "Loss", value: 14000, unit: "$", source: "Engine", asOf: "now" } as any]);
-    const out = fallback("fit", c, ev as any);
-    expect(out.points.some((p) => p.polarity === "pro")).toBe(true);
-    expect(out.points.some((p) => p.polarity === "con")).toBe(true);
-    expect(out.points.length).toBeLessThanOrEqual(5);
+    const market = [{ id: "E3", value: 31, unit: "%" }, { id: "E6", value: 40, unit: "x" }, { id: "E9", value: 22, unit: "%" }, { id: "E7", value: 3, unit: "%" }]
+      .map((e) => ({ ...e, ticker: "X", label: e.id, source: "yfinance", asOf: "now" }));
+    const bull = fallback("bull", c, [...ev, ...market] as any), bear = fallback("bear", c, [...ev, ...market] as any);
+    expect(bull.points.filter((p) => p.polarity === "pro").length).toBeGreaterThanOrEqual(2);
+    expect(bear.points.filter((p) => p.polarity === "con").length).toBeGreaterThanOrEqual(2);
+    for (const o of [bull, bear]) { expect(o.points.length).toBeLessThanOrEqual(5); for (const p of o.points) expect(p.evidenceIds.length).toBeGreaterThan(0); }
   });
 });
 

@@ -8,7 +8,7 @@ const COLORS = ["#2F7FC1", "#5AA2DB", "#86BCE6", "#3E8E7E", "#6FB3A3", "#7A86C8"
 const RANGES = ["6M", "1Y", "5Y"] as const;
 type Range = (typeof RANGES)[number];
 type Trust = { correctionRate: number | null; correctionsStored: number; learned: { notes: string[] } | null; stats: { analystRuns: number; firstTryPass: number; retried: number; fallbacks: number; numbersChecked: number; unsupportedBlocked: number }; evals: unknown };
-type Committee = { status: "idle" | "running" | "done" | "failed"; changes?: { ticker: string; name: string; kind: string; before: number; after: number; scoreBefore: number; scoreAfter: number; reason: string; speaker: string }[]; items?: { ticker: string; debate: { finalStances: Record<string, string>; shifts: unknown[] } }[]; sessionId?: string; reviewed?: number };
+type Committee = { status: "idle" | "running" | "done" | "failed"; changes?: { ticker: string; name: string; kind: string; before: number; after: number; scoreBefore: number; scoreAfter: number; reason: string; speaker: string }[]; items?: { ticker: string; debate: { finalStances: Record<string, string>; shifts: unknown[] }; ic?: { verdict: { decision: string } } }[]; sessionId?: string; reviewed?: number };
 
 function slicePath(cx: number, cy: number, r: number, a0: number, a1: number) {
   const large = a1 - a0 > Math.PI ? 1 : 0;
@@ -161,10 +161,9 @@ export function Dashboard({ p, rules, onOpen, onEdit, onAsk, trust, committee, o
 
   const dissent = (t: string) => {
     const it = committee.items?.find((x) => x.ticker === t);
-    if (!it) return null;
-    const st = Object.values(it.debate.finalStances);
-    const against = st.filter((s) => s === "exclude").length;
-    return against ? <Pill tone="warn">{against} of 3 analysts against</Pill> : st.every((s) => s === "include") ? <Pill tone="good">Committee agrees</Pill> : null;
+    const v = it?.ic?.verdict;
+    if (!v) return null;
+    return v.decision === "BUY" ? <Pill tone="good">Judge: BUY</Pill> : v.decision === "HOLD" ? <Pill tone="blue">Judge: HOLD</Pill> : <Pill tone="bad">{v.decision === "REJECTED" ? "Rejected" : "Judge: SELL"}</Pill>;
   };
 
   useEffect(() => {

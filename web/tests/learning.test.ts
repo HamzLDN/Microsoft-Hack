@@ -23,7 +23,7 @@ describe("decision", () => {
   const rules = [{ id: "C1", kind: "hard" }, { id: "C2", kind: "soft" }] as Rule[];
   const cand = (pass: boolean, status: "included" | "excluded") => ({ ticker: "X", name: "X", amount: 5000, status, mainReason: "r", pros: [{ text: "good", evidenceIds: [] }],
     cons: [], checks: [{ ruleId: "C1", pass, detail: "" }], score: { total: 70, parts: [], ruleAdjustments: [] } }) as unknown as Candidate;
-  const out = (stance: "include" | "exclude"): AnalystOutput => ({ agent: "fit", stance, confidence: 1, points: [], summary: "", fallback: false });
+  const out = (stance: "include" | "exclude"): AnalystOutput => ({ agent: "judge", stance, confidence: 1, points: [], summary: "", fallback: false });
   it("a hard rule fail always excludes, whatever the analysts say", () => {
     expect(decide(cand(false, "included"), [out("include"), out("include"), out("include")], rules).include).toBe(false);
   });

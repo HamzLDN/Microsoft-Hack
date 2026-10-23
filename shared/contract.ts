@@ -71,7 +71,7 @@ export const Portfolio = z.object({
 export type Portfolio = z.infer<typeof Portfolio>;
 
 export const AnalystOutput = z.object({
-  agent: z.enum(["fundamentals", "markets", "fit"]),
+  agent: z.enum(["bull", "bear", "judge"]),
   stance: z.enum(["include", "exclude", "neutral"]),
   confidence: z.number().min(0).max(1),
   points: z.array(z.object({

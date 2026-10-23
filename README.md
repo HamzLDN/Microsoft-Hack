@@ -1,8 +1,8 @@
-# Mandate
+# Bettervest
 
 Your rules. Your portfolio. Every reason shown.
 
-Mandate is a web app for an individual investor with $100,000. They state their goals and limits in a form and in their own words. Mandate turns these into numbered rules (C1, C2, ...), builds a portfolio of stocks and ETFs that follows them, and shows pros, cons and a pass or fail check against every rule for every company. Three AI analysts discuss each company, and the investor can question them.
+Bettervest is a web app for an individual investor with $100,000. They state their goals and limits in a form and in their own words. Bettervest turns these into numbered rules (C1, C2, ...), builds a portfolio of stocks and ETFs that follows them, and shows pros, cons and a pass or fail check against every rule for every company. Three AI analysts discuss each company, and the investor can question them.
 
 Microsoft x LSEG London Hackathon 2026. Educational project. Not financial advice.
 
@@ -25,8 +25,8 @@ Microsoft x LSEG London Hackathon 2026. Educational project. Not financial advic
 ```
 
 Demo logins (seeded test accounts, password `demo1234` for both):
-* **John Doe**: `john.doe@mandate.app` (use this one in the demo)
-* `demo@mandate.app`
+* **John Doe**: `john.doe@bettervest.app` (use this one in the demo)
+* `demo@bettervest.app`
 
 Anyone can also create an account. Backstage, with the AI discussions and chats, is at `http://localhost:3000/backstage`.
 

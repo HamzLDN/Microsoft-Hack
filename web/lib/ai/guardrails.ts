@@ -26,7 +26,7 @@ export function numberSupported(n: number, allowed: number[]): boolean {
 
 export type Check = { ok: boolean; errors: string[]; numbersChecked: number; unsupported: number[] };
 
-export function validateAnalyst(raw: unknown, agent: string, evidence: Evidence[], extras: number[] = []): Check & { value?: AnalystOutput } {
+export function validateAnalyst(raw: unknown, agent: string, evidence: Evidence[], extras: number[] = [], need: { pro?: boolean; con?: boolean } = { pro: true, con: true }): Check & { value?: AnalystOutput } {
   const parsed = AnalystOutput.safeParse({ ...(raw as object), agent, fallback: false });
   if (!parsed.success) {
     return { ok: false, errors: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`), numbersChecked: 0, unsupported: [] };
@@ -50,8 +50,9 @@ export function validateAnalyst(raw: unknown, agent: string, evidence: Evidence[
     if (!numberSupported(n, allowed)) unsupported.push(n);
   }
   if (unsupported.length) errors.push(`Numbers not in the evidence: ${unsupported.join(", ")}`);
-  if (!out.points.some((p) => p.polarity === "pro")) errors.push("Needs at least one pro");
-  if (!out.points.some((p) => p.polarity === "con")) errors.push("Needs at least one con");
+  if (need.pro && !out.points.some((p) => p.polarity === "pro")) errors.push("Needs at least one pro");
+  if (need.con && !out.points.some((p) => p.polarity === "con")) errors.push("Needs at least one con");
+  for (const p of out.points) if (!p.evidenceIds.length) errors.push(`Claim without a citation: ${p.text.slice(0, 60)}`);
   return { ok: errors.length === 0, errors, numbersChecked: checked, unsupported, value: out };
 }
 

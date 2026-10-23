@@ -1,5 +1,5 @@
 /**
- * Server-side MCP client for the Mandate chat API.
+ * Server-side MCP client for the Bettervest chat API.
  * Spawns the mandate-data MCP server (stdio) and reuses one connection per Node process.
  */
 import "server-only";
@@ -18,7 +18,7 @@ function mcpServerEntry(): string {
   const hit = candidates.find((p) => fs.existsSync(p));
   if (!hit) {
     throw new Error(
-      "Mandate MCP server not built. Run: cd mcp-server && npm install && npm run build",
+      "Bettervest MCP server not built. Run: cd mcp-server && npm install && npm run build",
     );
   }
   return hit;

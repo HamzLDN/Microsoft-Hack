@@ -7,7 +7,7 @@ const MCP_TOOLS: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "search_universe",
-      description: "Fuzzy match a company or ETF name to Mandate tickers.",
+      description: "Fuzzy match a company or ETF name to Bettervest tickers.",
       parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
     },
   },
@@ -15,7 +15,7 @@ const MCP_TOOLS: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "get_quote",
-      description: "Current price for a ticker in Mandate's universe.",
+      description: "Current price for a ticker in Bettervest's universe.",
       parameters: { type: "object", properties: { ticker: { type: "string" } }, required: ["ticker"] },
     },
   },

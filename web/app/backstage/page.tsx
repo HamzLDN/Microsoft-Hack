@@ -1,60 +1,30 @@
 "use client";
 // Backstage: what the AI did behind the scenes. Committee sessions with full transcripts, every chat, and the system checks.
 import { useEffect, useState } from "react";
+import { CommitteeView } from "@/components/CommitteeView";
 import { api, Bold, money } from "@/components/ui";
 
-const TITLE: Record<string, string> = { fundamentals: "Fundamentals", markets: "Markets and news", fit: "Client fit" };
-const COLOR: Record<string, string> = { fundamentals: "#2F7FC1", markets: "#7A86C8", fit: "#3E8E7E" };
-const KIND: Record<string, string> = { agree: "agrees", challenge: "challenges", question: "asks", summary: "sums up" };
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-function Avatar({ a }: { a: string }) {
-  return <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg font-serif text-sm font-semibold text-white" style={{ background: COLOR[a] ?? "#5E6E7E" }}>{(TITLE[a] ?? a)[0]}</span>;
-}
 
 function Item({ it }: { it: any }) {
   const [open, setOpen] = useState(false);
   const changed = it.after && (it.after.status !== it.before.status || Math.abs(it.after.amount - it.before.amount) >= 300);
+  const ic = it.ic;
+  if (!ic) return null;
+  const v = ic.verdict;
   return (
     <div className="border-t border-line py-3">
       <button className="flex w-full flex-wrap items-baseline gap-x-3 text-left" onClick={() => setOpen(!open)}>
         <b>{it.name}</b><span className="num text-xs text-muted">{it.ticker}</span>
-        <span className="num text-xs">committee {it.adjustment > 0 ? "plus" : it.adjustment < 0 ? "minus" : ""} {Math.abs(it.adjustment)}</span>
-        {it.after && <span className="num text-xs text-muted">{money(it.before.amount)} to {money(it.after.amount)}{it.after.status !== it.before.status ? ` · ${it.before.status} to ${it.after.status}` : ""}</span>}
+        <span className={`rounded-full px-2 text-xs font-semibold ${v.decision === "BUY" ? "bg-goodsoft text-good" : v.decision === "HOLD" ? "bg-baby text-accent" : "bg-badsoft text-bad"}`}>{v.decision}</span>
+        {ic.halted && <span className="num rounded-full bg-badsoft px-2 text-xs font-semibold text-bad">{ic.halted.code}</span>}
+        {ic.unreliable?.length > 0 && <span className="rounded-full bg-warnsoft px-2 text-xs font-semibold text-warn">{ic.unreliable.join(", ")} unreliable</span>}
+        {it.after && <span className="num text-xs text-muted">{money(it.before.amount)} to {money(it.after.amount)}</span>}
         {changed && <span className="rounded-full bg-warnsoft px-2 text-xs font-semibold text-warn">outcome changed</span>}
-        {it.debate.shifts?.length > 0 && <span className="rounded-full bg-baby px-2 text-xs font-semibold text-accent">{it.debate.shifts.length} changed mind</span>}
         <span className="ml-auto text-xs font-semibold text-accent">{open ? "Hide" : "Show transcript"}</span>
       </button>
-      {open && (
-        <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          <div>
-            <p className="label mb-2">Round 1 · individual views</p>
-            {it.round1.map((o: any, i: number) => (
-              <div key={o.agent} className="mb-3 flex gap-2">
-                <Avatar a={o.agent} />
-                <div className="min-w-0 text-sm">
-                  <p className="text-xs text-muted"><b className="text-ink">{TITLE[o.agent]}</b> · leans {o.stance} · {it.models?.[i] ?? ""}{o.fallback ? " · data only summary" : ""}</p>
-                  <ul className="mt-1 grid gap-1">{o.points.map((p: any, k: number) => <li key={k}><span className={p.polarity === "pro" ? "text-good" : "text-bad"}>{p.polarity === "pro" ? "+ " : "minus "}</span><Bold text={p.text} /> <span className="num text-[10px] text-accent">{p.evidenceIds.join(" ")}</span></li>)}</ul>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div>
-            <p className="label mb-2">Round 2 · discussion</p>
-            {it.debate.turns.map((t: any, i: number) => (
-              <div key={i} className="mb-3 flex gap-2">
-                <Avatar a={t.from} />
-                <div className="min-w-0 text-sm">
-                  <p className="text-xs text-muted"><b className="text-ink">{TITLE[t.from]}</b> {KIND[t.kind]} {t.to === "committee" ? "the committee" : TITLE[t.to]} · {t.model}</p>
-                  <p className="mt-1 rounded-xl rounded-tl-sm bg-sky p-2.5"><Bold text={t.text} /></p>
-                </div>
-              </div>
-            ))}
-            {it.debate.shifts?.map((x: any) => <p key={x.agent} className="text-sm text-warn"><b>{TITLE[x.agent]}</b> changed from {x.from} to {x.to}{x.reason ? `: ${x.reason}` : ""}</p>)}
-            <p className="mt-2 text-xs text-muted">Final: {Object.entries(it.debate.finalStances).map(([a, s]) => `${TITLE[a]} ${s}`).join(" · ")}</p>
-          </div>
-        </div>
-      )}
+      {open && <div className="mt-3"><CommitteeView ic={ic} effect={it.after ? { before: it.before, after: it.after } : undefined} /></div>}
     </div>
   );
 }
@@ -113,7 +83,7 @@ export default function Backstage() {
           {!d?.chats?.length && <p className="p-5 text-muted">No chats yet.</p>}
           {d?.chats?.map((c: any, i: number) => (
             <div key={i} className="grid gap-2 p-4 text-sm">
-              <p className="text-xs text-muted">{when(c.at)} · {c.mode === "help" ? "Help assistant" : `${TITLE[c.agent] ?? c.agent} analyst on ${c.ticker ?? "a company"}`} · {c.model ?? "data rules"}{c.retried ? " · retried after a number check" : ""}{c.blocked?.length ? ` · blocked ${c.blocked.join(", ")}` : ""}</p>
+              <p className="text-xs text-muted">{when(c.at)} · {c.mode === "help" ? "Help assistant" : `${({ bull: "Bull analyst", bear: "Bear analyst", judge: "Judge" } as Record<string, string>)[c.agent] ?? c.agent} on ${c.ticker ?? "a company"}`} · {c.model ?? "data rules"}{c.retried ? " · retried after a number check" : ""}{c.blocked?.length ? ` · blocked ${c.blocked.join(", ")}` : ""}</p>
               <p className="ml-auto max-w-[80%] rounded-xl rounded-tr-sm bg-baby p-2.5">{c.question}</p>
               <p className="max-w-[85%] whitespace-pre-line rounded-xl rounded-tl-sm bg-sky p-2.5"><Bold text={c.reply} /></p>
             </div>
