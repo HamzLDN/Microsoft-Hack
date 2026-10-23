@@ -1,7 +1,9 @@
-# Automatic CI disabled — run manually from GitHub Actions if needed.
 name: CI
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -46,16 +48,3 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-
-  deploy:
-    needs: [data-service, web]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, ARM64, microsoft-hack]
-    steps:
-      - name: Pull and restart on pinode
-        run: |
-          cd /home/hamza/Microsoft-Hack
-          git fetch origin main
-          git reset --hard origin/main
-          chmod +x scripts/deploy.sh
-          SKIP_TESTS=1 ./scripts/deploy.sh
