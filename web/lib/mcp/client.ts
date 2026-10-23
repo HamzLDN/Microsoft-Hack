@@ -24,8 +24,11 @@ function mcpServerEntry(): string {
   return hit;
 }
 
-function textFromResult(result: { content?: { type: string; text?: string }[]; isError?: boolean }): string {
-  const part = result.content?.find((c) => c.type === "text");
+type McpToolResult = { content?: { type: string; text?: string }[]; isError?: boolean };
+
+function textFromResult(result: unknown): string {
+  const r = result as McpToolResult;
+  const part = r.content?.find((c) => c.type === "text");
   return part?.text ?? "";
 }
 
@@ -54,7 +57,7 @@ async function getClient() {
 /** Invoke a tool on the server-side mandate-data MCP server. */
 export async function callMcpTool<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
   const client = await getClient();
-  const result = await client.callTool({ name, arguments: args });
+  const result = (await client.callTool({ name, arguments: args })) as McpToolResult;
   if (result.isError) {
     throw new Error(textFromResult(result) || `MCP tool ${name} failed`);
   }
