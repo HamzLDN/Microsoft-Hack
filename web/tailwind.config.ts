@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        paper: "#FBFCFD", card: "#FFFFFF", ink: "#1B2733", muted: "#5E6E7E", line: "#DCE6EF",
+        paper: "#FBFCFD", card: "#FFFFFF", ink: "#1B2733", muted: "#4F5D6B", line: "#DCE6EF",
         baby: "#D9ECFA", sky: "#EEF6FD", accent: "#2F7FC1", good: "#2E7D5B", goodsoft: "#E3F2EA", bad: "#B4473A", badsoft: "#F8E6E3", warn: "#8A6416", warnsoft: "#F6EEDB",
       },
       fontFamily: {

@@ -109,8 +109,8 @@ export function AboutScreen({ form, setForm, onNext }: { form: FormInput; setFor
           </span>
           <span className="mt-1 block font-normal text-muted">Holdings, bad year loss and the analysts all use this amount.</span>
         </label>
-        <label className="text-sm font-semibold">Years invested<Info term="Horizon" /><input type="number" min={1} className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5 num" value={form.horizon} onChange={(e) => set({ horizon: Math.max(1, +e.target.value) })} />
-          <span className="mt-1 block font-normal text-muted">How long until you need the money.</span>
+        <label className="text-sm font-semibold">Investment horizon (years)<Info term="Horizon" /><input type="number" min={1} className="mt-1 w-full rounded-lg border border-line bg-paper p-2.5 num" value={form.horizon} onChange={(e) => set({ horizon: Math.max(1, +e.target.value) })} />
+          <span className="mt-1 block font-normal text-muted">How many years until you need the money.</span>
         </label>
         <div className="sm:col-span-2">
           <p className="text-sm font-semibold">What is the money for?</p>

@@ -39,6 +39,16 @@ export default function Home() {
   const [shown, setShown] = useState<string[]>(DEFAULT_METRICS);
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState("");
+  const [largeText, setLargeText] = useState(false);
+  useEffect(() => {
+    try { const on = localStorage.getItem("bettervest-large-text") === "1"; setLargeText(on); document.documentElement.classList.toggle("large-text", on); } catch {}
+  }, []);
+  const toggleLargeText = () => {
+    const on = !largeText;
+    setLargeText(on);
+    document.documentElement.classList.toggle("large-text", on);
+    try { localStorage.setItem("bettervest-large-text", on ? "1" : "0"); } catch {}
+  };
   const [board, setBoard] = useState<BoardView>("overview");
   const [committee, setCommittee] = useState<{ status: "idle" | "running" | "done" | "failed"; changes?: any[]; items?: any[]; sessionId?: string; adjustments?: Record<string, number>; reviewed?: number }>({ status: "idle" });
 
@@ -199,6 +209,7 @@ export default function Home() {
           {user && (
             <div className="ml-auto flex items-center gap-2">
               <div className="relative">
+                <button className="btn-ghost px-3 py-1.5 text-sm" onClick={toggleLargeText} aria-pressed={largeText} title="Make all text larger">{largeText ? "A- Normal text" : "A+ Larger text"}</button>
                 <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => setSettings(!settings)}>Metrics</button>
                 {settings && (
                   <div className="paper absolute right-0 top-11 z-30 w-60 p-4 shadow-paper">
