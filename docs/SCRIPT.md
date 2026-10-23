@@ -1,150 +1,128 @@
-# Bettervest: 7 minute presentation script
+# Bettervest: 8 minute presentation
 
-## Click path at a glance (login to the end)
+**Structure:** 1:30 on the client base, 5:30 live demo from the login page, 1:00 close.
+**Roles:** the **Speaker** talks and faces the judge; the **Driver** clicks and never talks over the Speaker.
+Each section notes which "10: Outstanding" box on the judging grid it ticks.
 
-1. **Login screen** → email `john.doe@bettervest.app`, password from the README → **Log in**. John's dashboard opens.
-2. **Edit details** → **About you** (amount, investment horizon) → **Continue**.
-3. **Preferences** → move the risk slider → **Use an example** → **Continue**.
-4. **Here's what we understood** → point at a rule's quote ("Hard because you said can't") → **Build my portfolio**.
-5. **Dashboard** → point at the dollar amounts, the bad year loss line and the **Committee review** card.
-6. Click a holding with a **Judge: BUY** badge → drawer opens → **Show committee review** → phases 1 to 4 → **Question the Judge**.
-7. **Close** the drawer → switch to the **Backstage** tab → latest session → a company tagged **COMPLIANCE_BLOCK** → **Show transcript**.
-8. Back to the main site → sidebar **Assistant** tab → ask about Pfizer vs Johnson & Johnson volatility.
-9. Top bar **A+ Larger text** (then switch it back).
-10. Optional: **Challenge it** → **Own** a company → watch the toast. Then close on the dashboard.
-
-Two people: **Speaker** (talks, faces the judge) and **Driver** (clicks, never talks over the Speaker).
-Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and which "10: Outstanding" box it ticks.
+**Links:** site http://localhost:3000 · Backstage http://localhost:3000/backstage
 
 ---
 
-## Before you go on (10 minutes before)
+## Before you go on (15 minutes before)
 
-1. Run `./start.sh` and leave that terminal open. Check http://localhost:3000/api/llm-health says `ok: true`.
-2. Log in as **John Doe** (`john.doe@bettervest.app`, password in the README).
-3. Go through About you and preferences with **Use an example**, build the portfolio, and **wait for the Committee review card to finish** (about 2 minutes). This caches the run so it loads instantly on stage.
-4. Log out. On stage, logging back in as John opens his dashboard straight away, and the committee result loads instantly because the inputs are the same.
-5. Open **Backstage** (http://localhost:3000/backstage) in a second tab.
-6. Browser zoom 110 to 125% so the back row can read it. Larger text toggle off.
-7. Backup: screenshots of the dashboard, a committee transcript and a COMPLIANCE_BLOCK in Backstage, in case the Wi‑Fi or AI drops.
+1. Run `./start.sh` and leave that terminal open. Check http://localhost:3000/api/llm-health shows `ok: true`.
+2. **Rehearse the exact demo once** with a throwaway account (**New here? Create an account**, any email like `rehearsal1@bettervest.app`). Use the same clicks as below: amount **100000**, horizon **9**, **Use an example**, default everything else. Wait for the **Committee review** card to finish (about 2 minutes). This caches the committee, so on stage it loads instantly.
+3. Log out. Leave the **login page** on screen.
+4. Open **Backstage** in a second tab (it will show the rehearsal session).
+5. Browser zoom about 115%. Larger text off.
+6. Backup: screenshots of the dashboard, a committee review and a COMPLIANCE_BLOCK, in case the Wi‑Fi or AI drops.
 
 ---
 
-## 0:00 to 0:40 · The client and the problem
-
-**Driver:** login screen showing "Your rules. Your portfolio. Every reason shown."
+## Part 1 · The client base (0:00 to 1:30, no clicking)
 
 **Speaker:**
-> "Meet John. He's 58, he has **$100,000**, and he needs it to last until he retires in 9 years. He doesn't want a black box telling him what to buy. He wants his own rules followed, and he wants to know *why*.
-> Today's robo advisers give him a risk score and a pie chart. Bettervest gives him an investment committee that argues about every company, follows his rules exactly, and shows its working."
+> "Our client is the everyday individual investor, and especially people approaching or in retirement.
+>
+> In the UK and US, millions of people are moving from a salary to living off their savings. Someone with $100,000 doesn't get a private wealth manager. Their options are a robo adviser, which gives them a risk score and a pie chart, or a chatbot that tells them what they want to hear.
+>
+> What they actually need is three things:
+> first, **their own rules respected**: 'I can't lose more than 15% in a bad year', 'no tobacco', 'I need income';
+> second, **an honest view of the downside**, not just the upside;
+> and third, **reasons they can understand and check**, because it's their life savings.
+>
+> So we built Bettervest: an investment committee for one person. Let us show you with John."
 
-✅ **Client focus:** a specific client with a specific need, from the first sentence.
+✅ **Client focus:** a clearly defined client need, stated before any tech.
 
 ---
 
-## 0:40 to 1:50 · His rules, in his own words
+## Part 2 · Live demo from the login page (1:30 to 7:00)
 
-**Driver:** log in as John Doe. His dashboard opens. Click **Edit details** to show how he set it up: **About you**. Point at **Amount you plan to invest** and **Investment horizon (years)**.
+### 1:30 · Sign up (20 seconds)
+**Driver:** on the login page click **New here? Create an account**, enter `john@bettervest.app` and a password, then **Create account**.
 
-**Speaker:** "Two numbers to start: how much, and for how long."
+**Speaker:** "John signs up. His preferences are saved, so next time he goes straight to his portfolio."
 
-**Driver:** **Continue**. On preferences, drag the risk slider so the bad year loss line updates, then click **Use an example** and **Continue**. The "Here's what we understood" screen appears.
+### 1:50 · About you (25 seconds)
+**Driver:** type **100000** in **Amount you plan to invest**, **9** in **Investment horizon (years)**, pick **Income later**, then **Continue**.
+
+**Speaker:** "Two numbers to start: how much, and for how long. John has $100,000 and needs it in 9 years."
+
+### 2:15 · His preferences, in his own words (45 seconds)
+**Driver:** drag the risk slider a little so the bad year loss line changes, then click **Use an example** and **Continue**.
 
 **Speaker:**
-> "Now he just talks: *I can't stomach losing more than about 15% in a bad year. No gambling or tobacco. I like dividends.*
-> The AI turns that into numbered rules. Look: *'Hard rule, because you said **can't**.'* Every rule quotes his exact words, and he can switch any of them between a hard rule and a preference with one tap.
-> And it learns: when people correct a rule, the next person gets it right first time."
+> "As he moves the slider, it tells him in dollars what a bad year could cost, not an abstract risk score.
+> Then he just talks: *'I can't stomach losing more than about 15% in a bad year. No gambling or tobacco. I like companies that pay dividends.'*"
 
-✅ **Client focus:** designed around *his* objectives, in his language.
+✅ **Client focus:** built around his objectives, in his language.
+
+### 3:00 · Here's what we understood (30 seconds)
+**Driver:** point at the loss limit rule and the tobacco rule.
+
+**Speaker:**
+> "Our AI turns his words into numbered rules, and every rule quotes him: *'Hard rule, because you said can't.'* If it misread him, he taps to switch it. And it learns from those corrections."
+
 ✅ **Data and AI:** language turned into structured, checkable rules.
 
----
-
-## 1:50 to 2:40 · The recommendation
-
-**Driver:** **Build my portfolio**. The dashboard appears (instantly, because the same inputs were rehearsed).
+### 3:30 · The recommendation (40 seconds)
+**Driver:** **Build my portfolio**. The dashboard opens. Point at the holdings list, then the bad year loss.
 
 **Speaker:**
-> "Here's the recommendation: exactly where his $100,000 goes, company by company, in dollars.
-> His $15,000 loss limit is checked against a year of real price data: we estimate a bad year at about $14,900, so we're inside it.
-> Every holding shows a pro **and** a con. We never hide the downside."
+> "Here's exactly where his $100,000 goes, company by company, in dollars. Real public data: SEC filings, prices, news and Federal Reserve figures.
+> His $15,000 loss limit is checked against a year of real price swings: about $14,900, so he's inside it.
+> And every holding shows a pro **and** a con. We never hide the downside."
 
-✅ **Quality of recommendation:** specific (dollar amounts), well reasoned (pros, cons, the loss check), easy to follow.
+✅ **Quality of recommendation:** specific and well reasoned.
 
----
-
-## 2:40 to 4:30 · The investment committee (the centrepiece)
-
-**Driver:** point at the **Committee review** card: added, dropped or resized holdings, each with a reason.
+### 4:10 · The AI investment committee (1:30, the centrepiece)
+**Driver:** point at the **Committee review** card. Then click a holding with a **Judge: BUY** badge (Prologis in rehearsal), then **Show committee review**.
 
 **Speaker:**
-> "A single AI asked 'should I buy this?' tends to agree with whoever's asking. So we don't ask one AI. We run a committee, on Microsoft's model, gpt 6.1 sol."
+> "One AI asked 'should I buy this?' tends to agree with whoever is asking. So we don't ask one AI. We run a committee, on Microsoft's gpt 6.1 sol.
+>
+> **Phase 1:** a **Bull** builds the case for, a **Bear** builds the case against, and they never see each other's work.
+> **Phase 2:** two rounds of cross examination. Green is the Bull, red is the Bear. Every claim must cite a real figure; these tags are the sources. Here the Bear says it isn't cheap at 28 times earnings, and the Bull answers with its cash flow. Our code checks every single number against the data.
+> **Phase 4:** a neutral **Judge**, our Chief Compliance Officer, weighs only cited evidence and rules Buy, Hold or Sell. And it moves real money: this holding went from $7,800 to $9,000."
 
-**Driver:** open a holding with a **Judge: BUY** or **SELL** badge (Prologis was a BUY in rehearsal). Click **Show committee review**. Point at the phase bar.
+**Driver:** click **Question the Judge**, type *"Why not hold more of it?"*
 
-**Speaker:**
-> "Phase one: a **Bull** writes the case for, a **Bear** writes the case against. They never see each other's work.
-> Phase two: two rounds of cross examination. Green is the Bull, red is the Bear. **Every claim has to cite a real figure**: these little tags are the sources, from filings, prices and news. Here the Bear says it's not cheap at 28 times earnings; the Bull answers with its cash flow.
-> Our code checks every number they write against the data. No citation, no claim."
+**Speaker:** "And John can question any of them in plain English."
 
-**Driver:** scroll to **Phase 4**. Click **Question the Judge** and type *"Why not hold more of it?"*
-
-**Speaker:**
-> "Then a neutral **Judge**, our Chief Compliance Officer, weighs only the cited evidence and rules Buy, Hold or Sell. And that verdict actually moves John's money: this one went from $7,800 to $9,000.
-> And John can question any of them, in plain English."
-
-✅ **Data and AI:** analysis that would be hard to do manually: two adversarial analysts, cited evidence, number checking, across every holding.
+✅ **Data and AI:** analysis that would be hard to do manually, across every holding.
 ✅ **Originality:** an adversarial committee, not a chatbot.
-✅ **Quality of recommendation:** the logic is visible and easy to follow.
 
----
-
-## 4:30 to 5:30 · The circuit breaker (why you can trust it)
-
-**Driver:** switch to the **Backstage** tab. Open the latest session, then a company tagged **COMPLIANCE_BLOCK** (the tobacco or gambling one).
+### 5:40 · The circuit breaker (50 seconds)
+**Driver:** **Close** the drawer, switch to the **Backstage** tab, open the latest session, then a company tagged **COMPLIANCE_BLOCK** → **Show transcript**.
 
 **Speaker:**
-> "Before any verdict, a circuit breaker runs.
-> If a stock breaks the client's rules, it's blocked instantly. This tobacco company never even got a debate: a flat No Go, because John said no tobacco.
-> If one of the analysts stops responding, we reject the stock rather than let one side argue unopposed. That's an **ARCHITECTURE_FAIL**.
-> If anyone quotes a number that isn't in the data, that's a **DATA_INTEGRITY_FAIL**, and the run is killed.
-> In finance, one invented number can cost real money. Our system would rather say no than guess."
+> "That was Phase 3: the circuit breaker. Before any verdict, three checks.
+> Break the client's rules and it's blocked instantly: this tobacco company never even got a debate, a flat No Go.
+> If an analyst stops responding, we reject the stock rather than let one side argue unopposed.
+> If anyone quotes a number that isn't in the data, the run is killed.
+> In finance, one invented number costs real money, so our system would rather say no than guess. And everything is recorded here, so a compliance officer can audit exactly why."
 
-**Driver:** scroll the session list.
+✅ **Quality of recommendation:** credible and auditable.
+✅ **Originality:** compliance first, fault tolerant.
 
-**Speaker:** "And every argument, every chat and every rejection is recorded here. A compliance officer can audit exactly why the AI recommended what it did."
+### 6:30 · Built for real people (30 seconds)
+**Driver:** back to the main site. In the sidebar, open **Assistant** and ask *"Is Pfizer more volatile than Johnson and Johnson?"* Then click **A+ Larger text** in the top bar.
 
-✅ **Quality of recommendation:** credible, auditable.
-✅ **Originality:** a fault-tolerant, compliance-first design that stands out.
+**Speaker:** "The assistant looks up live data to answer him. And because many of our clients are older, there are bigger buttons, higher contrast text, and one tap for larger text."
 
----
-
-## 5:30 to 6:20 · Built for real people
-
-**Driver:** back to the main site. In the sidebar, open the **Assistant** tab and type *"Is Pfizer more volatile than Johnson and Johnson?"*
-
-**Speaker:** "Any term on screen has an info button, and the help assistant looks up live data to answer." *(It answers with both volatility figures.)*
-
-**Driver:** click **A+ Larger text** in the top bar (click it again after, to switch back).
-
-**Speaker:** "And we designed for older investors like John: bigger buttons, higher contrast text, and one tap for larger text."
-
-**Driver (optional, if time):** open **Challenge it**, swipe one company in. A toast shows how the bad year loss changes.
-
-**Speaker:** "And if John disagrees, he can challenge the portfolio himself and see the consequence instantly."
-
-✅ **Client focus:** accessible, explains itself.
 ✅ **Execution:** polished, live, real data.
 
 ---
 
-## 6:20 to 7:00 · Close
+## Part 3 · Close (7:00 to 8:00)
 
-**Driver:** back to the dashboard.
+**Driver:** click **A+ Larger text** again to switch it back. Leave the dashboard on screen.
 
 **Speaker:**
-> "So: one client, his rules in his words, real public data, and an AI committee that argues, cites its sources, refuses to guess, and shows every reason.
-> Bettervest: your rules, your portfolio, every reason shown. Thank you."
+> "So: a real client need, his rules in his own words, real public data, and an AI committee that argues both sides, cites its sources, refuses to guess, and shows every reason.
+> For John, that means he understands and trusts what happens to his savings.
+> Bettervest: your rules, your portfolio, every reason shown. Thank you, we'd love your questions."
 
 ---
 
@@ -152,14 +130,15 @@ Target 7:00. Hard stop 8:00. Each section says what to click, what to say, and w
 
 | Question | Answer |
 |---|---|
-| "Where does the data come from?" | Free public sources: yfinance and Finnhub for prices and news, SEC EDGAR filings for financials, FRED for inflation and interest rates. Every figure on screen shows its source and date. |
-| "What if the AI makes a number up?" | Code compares every number to the evidence. In the debate that's a `DATA_INTEGRITY_FAIL` and the run is killed. In chat, the answer is retried or replaced with the real figure. Backstage shows how many were checked and blocked. |
-| "Isn't this just a chatbot?" | No. The chat is the interface. The work is a pipeline: rules from language, a portfolio engine, an adversarial committee with cited evidence, a circuit breaker and a verdict that changes the portfolio. |
-| "Why three agents and not one?" | One model tends to agree with the user. Splitting into Bull and Bear forces both sides to be argued, and a separate Judge decides. That's how real investment committees avoid confirmation bias. |
-| "Which Microsoft tech?" | The whole committee runs on Microsoft's gpt 6.1 sol through the hackathon's Azure OpenAI gateway. |
-| "Can it give personal advice?" | It's an educational tool, not financial advice; the footer says so. The Judge also checks suitability against the client's own rules. |
+| "Where does the data come from?" | Free public sources: yfinance and Finnhub for prices and news, SEC EDGAR filings for financials, FRED for inflation and rates. Every figure shows its source and date. |
+| "What if the AI makes a number up?" | Code compares every number to the evidence. In the debate that's a DATA_INTEGRITY_FAIL and the run is killed. Backstage shows the checks. |
+| "Isn't this just a chatbot?" | The chat is the interface. The work is a pipeline: rules from language, a portfolio engine, an adversarial committee with cited evidence, a circuit breaker, and a verdict that changes the portfolio. |
+| "Why three agents?" | One model drifts toward agreeing with the user. A Bull and a Bear force both sides to be argued, and a separate Judge decides, like a real investment committee. |
+| "Microsoft tech?" | The whole committee runs on Microsoft's gpt 6.1 sol through the hackathon's Azure OpenAI gateway. |
+| "Is this financial advice?" | No, it's an educational tool, and the footer says so. The Judge also checks suitability against the client's own rules. |
 
 ## If something breaks
 
-- **AI slow or down:** the committee falls back to clearly labelled data rules; say "this is the data-only mode, and it still follows every rule and check."
+- **AI slow or down:** the app falls back to clearly labelled data rules. Say: "this is the data only mode; it still follows every rule and check."
 - **Site down:** run `./start.sh` again (it clears old servers itself), or switch to the backup screenshots and keep talking.
+- **Committee card still running:** open the drawer on a holding instead and narrate Phase 1 while it finishes.
