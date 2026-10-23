@@ -11,9 +11,11 @@ const HACKATHON_API_VERSION = "2024-12-01-preview";
 function providers(): Provider[] {
   const e = process.env;
   const list: Provider[] = [];
+  // A key on the OPENAI_API_KEY line that isn't an OpenAI key (those start with sk-) is the hackathon gateway key
+  const hackKey = e.ORGANISER_API_KEY || (e.OPENAI_API_KEY && !e.OPENAI_API_KEY.startsWith("sk-") ? e.OPENAI_API_KEY : "");
   const order = [(e.LLM_PROVIDER || "organiser").toLowerCase(), "organiser", "azure", "openai"];
   for (const name of Array.from(new Set(order))) {
-    if (name === "organiser" && e.ORGANISER_API_KEY) {
+    if (name === "organiser" && hackKey) {
       // Defaults follow the hackathon's example project: Azure OpenAI client, this gateway, gpt-6.1-sol
       const endpoint = e.ORGANISER_API_ENDPOINT || HACKATHON_ENDPOINT;
       const azure = Boolean(e.ORGANISER_API_VERSION) || /azure\.com|azurewebsites\.net/.test(endpoint);
@@ -22,15 +24,15 @@ function providers(): Provider[] {
         model: e.ORGANISER_MODEL || HACKATHON_MODEL,
         // No fixed deployment: the client routes by each request's model, so analysts can use different models
         client: azure
-          ? new AzureOpenAI({ endpoint, apiKey: e.ORGANISER_API_KEY, apiVersion: e.ORGANISER_API_VERSION || HACKATHON_API_VERSION })
-          : new OpenAI({ baseURL: endpoint, apiKey: e.ORGANISER_API_KEY }),
+          ? new AzureOpenAI({ endpoint, apiKey: hackKey, apiVersion: e.ORGANISER_API_VERSION || HACKATHON_API_VERSION })
+          : new OpenAI({ baseURL: endpoint, apiKey: hackKey }),
       });
     }
     if (name === "azure" && e.AZURE_OPENAI_API_KEY && e.AZURE_OPENAI_ENDPOINT && e.AZURE_OPENAI_DEPLOYMENT) {
       list.push({ name: "azure", model: e.AZURE_OPENAI_DEPLOYMENT,
         client: new AzureOpenAI({ endpoint: e.AZURE_OPENAI_ENDPOINT, apiKey: e.AZURE_OPENAI_API_KEY, deployment: e.AZURE_OPENAI_DEPLOYMENT, apiVersion: "2024-10-21" }) });
     }
-    if (name === "openai" && e.OPENAI_API_KEY) {
+    if (name === "openai" && e.OPENAI_API_KEY?.startsWith("sk-")) {
       list.push({ name: "openai", model: e.OPENAI_MODEL || "gpt-4o-mini", client: new OpenAI({ apiKey: e.OPENAI_API_KEY }) });
     }
   }
