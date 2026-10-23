@@ -1,0 +1,382 @@
+<title>Verified</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: research-terminal report — summary strip, then recommendation + controls, then evidence */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --fg:#161b26; --muted:#5d6678; --line:#dfe3ea;
+  --accent:#24508f; --accent-soft:#e3ebf7;
+  --ok:#1f7a4d; --ok-soft:#e2f2e9; --bad:#b3261e; --bad-soft:#f8e3e1; --warn:#9a6700; --warn-soft:#f6ecd6;
+  --reserve:#8a93a6;
+  --display:"Fraunces",Georgia,serif; --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f131a; --panel:#161c26; --fg:#e6e9ef; --muted:#97a0b2; --line:#283142;
+  --accent:#7fa8e6; --accent-soft:#1d2b42; --ok:#5cc28d; --ok-soft:#15301f; --bad:#f08079; --bad-soft:#3a1a18; --warn:#e0b450; --warn-soft:#33290f; --reserve:#6b7489; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f131a; --panel:#161c26; --fg:#e6e9ef; --muted:#97a0b2; --line:#283142;
+  --accent:#7fa8e6; --accent-soft:#1d2b42; --ok:#5cc28d; --ok-soft:#15301f; --bad:#f08079; --bad-soft:#3a1a18; --warn:#e0b450; --warn-soft:#33290f; --reserve:#6b7489; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-family:var(--display);font-size:28px;margin:0;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:0}
+.tag{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:4px}
+h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* funnel */
+.funnel{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.step{border-left:3px solid var(--accent);padding:4px 10px}
+.step b{display:block;font-family:var(--mono);font-size:22px;font-weight:500}
+.step span{color:var(--muted);font-size:12px}
+.scale{font-size:12px;color:var(--muted);margin-top:10px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+/* controls */
+.ctrl{display:grid;gap:14px}
+.ctrl label{display:grid;gap:4px;font-size:13px}
+.ctrl .row{display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--fg);padding:4px 10px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chip:focus-visible,button:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* sankey */
+.sankey-box{overflow-x:auto}
+svg text{fill:var(--fg);font-family:var(--sans);font-size:12px}
+svg .m{fill:var(--muted);font-family:var(--mono);font-size:11px}
+/* table */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer;transition:background .15s}
+tbody tr:hover,tbody tr.sel{background:var(--accent-soft)}
+.right{text-align:right}
+.pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;font-weight:500}
+.hi{background:var(--ok-soft);color:var(--ok)} .md{background:var(--accent-soft);color:var(--accent)}
+.bars{display:flex;height:8px;width:90px;border-radius:2px;overflow:hidden;background:var(--line);margin-top:4px}
+.bars i{display:block;height:100%}
+.delta{font-size:11px;font-family:var(--mono)}
+.up{color:var(--ok)} .dn{color:var(--bad)}
+/* rejected */
+.rej{display:grid;gap:6px}
+.rej button{all:unset;cursor:pointer;display:grid;grid-template-columns:auto 1fr;gap:10px;padding:8px;border-radius:6px;border:1px solid var(--line)}
+.rej button:hover{border-color:var(--bad)}
+.rej .x{color:var(--bad);font-family:var(--mono);font-weight:500}
+.rej small{color:var(--muted);display:block}
+/* evidence */
+.ev{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.ev{grid-template-columns:1fr}}
+.doc{border:1px solid var(--line);border-radius:6px;padding:12px;font-size:13px;background:var(--bg)}
+.doc h3{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.doc p{margin:0 0 6px}
+mark{background:var(--warn-soft);color:var(--fg);padding:0 3px;border-radius:2px}
+mark.bad{background:var(--bad-soft);color:var(--bad)} mark.ok{background:var(--ok-soft);color:var(--ok)}
+.verdict{margin-top:10px;font-weight:600}
+/* trace */
+.trace{display:grid;gap:0;counter-reset:t}
+.trace div{position:relative;padding:8px 0 8px 28px;border-left:1px solid var(--line);margin-left:8px}
+.trace div::before{counter-increment:t;content:counter(t);position:absolute;left:-9px;top:8px;width:18px;height:18px;border-radius:50%;background:var(--panel);border:1px solid var(--accent);color:var(--accent);font:500 10px/16px var(--mono);text-align:center}
+.trace b{font-weight:600}
+.trace .q{font-family:var(--mono);font-size:12px;color:var(--muted)}
+/* sim */
+.sim{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.simc{padding:10px;border-radius:6px;border:1px solid var(--line)}
+.simc b{font-family:var(--mono);font-size:24px;font-weight:500;display:block}
+.simc.win b{color:var(--ok)}
+.foot{color:var(--muted);font-size:12px}
+/* signals */
+.sig{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px}
+@media (max-width:760px){.sig{grid-template-columns:1fr}}
+.news{display:grid;gap:8px}
+.news div{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13px}
+.news .meta{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted);margin-bottom:2px}
+.t{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:3px;background:var(--accent-soft);color:var(--accent)}
+.s-pos{color:var(--ok)} .s-neg{color:var(--bad)} .s-neu{color:var(--muted)}
+.debate{display:grid;gap:8px}
+.msg{display:grid;grid-template-columns:118px 1fr;gap:10px;font-size:13px;align-items:start}
+.msg .who{font-size:12px;font-weight:600}
+.msg .who small{display:block;font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px}
+.msg p{margin:0;padding:8px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--line)}
+.msg.chair p{border-color:var(--accent);background:var(--accent-soft)}
+@media (max-width:480px){.msg{grid-template-columns:1fr;gap:4px}}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:14px}
+.metric{border-top:2px solid var(--line);padding-top:6px}
+.metric b{font-family:var(--mono);font-size:20px;font-weight:500;display:block}
+.metric span{font-size:11px;color:var(--muted)}
+.stance{display:inline-block;width:46px;height:6px;background:var(--line);border-radius:3px;position:relative;vertical-align:middle;margin-left:4px}
+.stance i{position:absolute;top:-2px;width:4px;height:10px;border-radius:1px;background:var(--fg)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Verified<span>.</span></h1>
+      <p class="sub">Where your $100,000 should go, and the filed evidence for every dollar.</p>
+    </div>
+    <span class="tag">Demo · sample data · not financial advice</span>
+  </header>
+
+  <section class="panel" aria-label="Pipeline">
+    <h2>Pipeline</h2>
+    <div class="funnel">
+      <div class="step"><b>312</b><span>startups raising (Form C)</span></div>
+      <div class="step"><b>141</b><span>no contradicted claims</span></div>
+      <div class="step"><b>63</b><span>priced at or below 80th pct</span></div>
+      <div class="step"><b id="fNScreen">12</b><span>shortlisted in this demo</span></div>
+      <div class="step"><b id="fNRec">8</b><span>recommended</span></div>
+    </div>
+    <p class="scale num">18,412 pages read · 6,108 claims checked · 9 min 14 s</p>
+  </section>
+
+  <div class="grid2">
+    <section class="panel" aria-label="Recommendation">
+      <h2>Recommendation</h2>
+      <div class="sankey-box"><svg id="sankey" viewBox="0 0 640 300" width="100%" role="img" aria-label="Flow of $100,000 into startups and reserve"></svg></div>
+    </section>
+    <section class="panel ctrl" aria-label="Investor preferences">
+      <h2>Your preferences</h2>
+      <label for="risk"><span class="row"><span>Risk appetite</span><span class="num" id="riskV"></span></span>
+        <input type="range" id="risk" min="0" max="100" value="60"></label>
+      <label for="reserve"><span class="row"><span>Follow-on reserve</span><span class="num" id="reserveV"></span></span>
+        <input type="range" id="reserve" min="0" max="50" step="5" value="30"></label>
+      <label for="cheques"><span class="row"><span>Number of cheques</span><span class="num" id="chequesV"></span></span>
+        <input type="range" id="cheques" min="3" max="12" value="8"></label>
+      <div><span style="font-size:13px">Sector tilt</span><div class="chips" id="chips" style="margin-top:6px"></div></div>
+      <div>
+        <h2 style="margin-top:4px">Odds of returning $100k</h2>
+        <div class="sim">
+          <div class="simc" id="simA"><span class="foot">3 cheques, no reserve</span><b>–</b></div>
+          <div class="simc win" id="simB"><span class="foot" id="simBl">This plan</span><b>–</b></div>
+        </div>
+        <p class="foot" style="margin:6px 0 0">10,000 runs on an illustrative seed-stage outcome curve.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel" aria-label="Allocation table">
+    <h2>Cheques · click a row to trace it</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Startup</th><th>Sector</th><th>Conviction</th><th>Why</th><th class="right">Cheque</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" aria-label="News signals and agent debate">
+    <h2 id="sigH">News, competition and statements · agent debate</h2>
+    <div class="sig">
+      <div><div class="news" id="news"></div></div>
+      <div><div class="debate" id="debate"></div></div>
+    </div>
+    <div class="metrics" id="metrics"></div>
+  </section>
+
+  <div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+    <section class="panel" aria-label="Trace">
+      <h2 id="traceH">Where this number came from</h2>
+      <div class="trace" id="trace"></div>
+    </section>
+    <section class="panel" aria-label="Not recommended">
+      <h2>Not recommended · click to see evidence</h2>
+      <div class="rej" id="rej"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-label="Evidence" id="evBox">
+    <h2 id="evH">Evidence</h2>
+    <div class="ev" id="ev"></div>
+  </section>
+
+  <p class="foot">Educational hackathon project. Not financial advice. All companies and figures above are fictional sample data.</p>
+</div>
+
+<script>
+const S=[
+ {id:"loomwork",name:"Loomwork",sector:"B2B software",rev:1.42,growth:140,runway:22,ver:9,claims:9,pct:35,quote:"Revenue grew from $592k to $1.42M (FY24 to FY25).",page:14,fs:"Revenues — 1,421,880 (2025) · 592,410 (2024)"},
+ {id:"gridnest",name:"Gridnest",sector:"Climate",rev:0.88,growth:95,runway:18,ver:7,claims:8,pct:42,quote:"We hold 18 months of operating cash at current burn.",page:9,fs:"Cash — 1,204,300 · Net loss — 803,100"},
+ {id:"medisort",name:"Medisort",sector:"Health",rev:0.61,growth:120,runway:14,ver:6,claims:7,pct:48,quote:"Contracts with 11 regional clinics.",page:6,fs:"Note 4: 11 customer agreements"},
+ {id:"farmfold",name:"Farmfold",sector:"Climate",rev:0.39,growth:210,runway:11,ver:5,claims:7,pct:55,quote:"Revenue more than tripled year on year.",page:11,fs:"Revenues — 392,700 (2025) · 126,500 (2024)"},
+ {id:"ledgerly",name:"Ledgerly",sector:"Fintech",rev:2.1,growth:60,runway:26,ver:8,claims:8,pct:61,quote:"Gross margin of 71%.",page:12,fs:"Gross profit — 1,491,000 on revenue 2,100,400"},
+ {id:"quaycode",name:"Quaycode",sector:"B2B software",rev:0.27,growth:310,runway:9,ver:4,claims:6,pct:66,quote:"Paying customers up from 40 to 160.",page:7,fs:"Deferred revenue note: 158 subscriptions"},
+ {id:"tidal",name:"Tidal Bio",sector:"Health",rev:0.15,growth:180,runway:20,ver:5,claims:6,pct:50,quote:"Two granted patents.",page:5,fs:"Note 7: Intangible assets, 2 patents"},
+ {id:"parcelpath",name:"Parcelpath",sector:"Logistics",rev:1.05,growth:45,runway:16,ver:6,claims:6,pct:38,quote:"Positive contribution margin since Q2.",page:13,fs:"Cost of revenue — 812,000 on revenue 1,050,200"},
+ {id:"civicstack",name:"Civicstack",sector:"B2B software",rev:0.52,growth:85,runway:15,ver:6,claims:7,pct:57,quote:"Three city government contracts.",page:8,fs:"Note 5: 3 public-sector contracts"},
+ {id:"brightdesk",name:"Brightdesk",sector:"Fintech",rev:0.34,growth:70,runway:8,ver:4,claims:7,pct:70,quote:"Live in 4 markets.",page:4,fs:"Segment note: 4 countries"},
+ {id:"fluxa",name:"Fluxa",sector:"Climate",rev:0.22,growth:260,runway:7,ver:3,claims:6,pct:74,quote:"Pilot with a national utility.",page:6,fs:"Note 9: pilot agreement, unpaid"},
+ {id:"nimbo",name:"Nimbo",sector:"Logistics",rev:0.47,growth:55,runway:12,ver:5,claims:6,pct:46,quote:"Fleet of 120 vehicles under management.",page:10,fs:"Note 3: 117 vehicles"}
+];
+const R=[
+ {name:"Orbitly",sector:"B2B software",reason:"Revenue claim contradicted",short:"Pitch says $2.0M ARR · filed revenue $640k",
+  pitch:["“We have crossed <mark class='bad'>$2.0M in annual recurring revenue</mark>, with 30% month-on-month growth.”","Offering memorandum, p. 3"],
+  filed:["Statement of operations, year ended 31 Dec 2025","Revenues: <mark class='bad'>$640,212</mark>","Reviewed by independent accountant, p. 22"],
+  verdict:"Contradicted: the claimed figure is 3.1× the filed revenue (tolerance ±10%)."},
+ {name:"Vantel",sector:"Health",reason:"Auditor going-concern warning",short:"“Substantial doubt” in auditor's note",
+  pitch:["“We are well capitalised for our next phase of growth.”","Offering memorandum, p. 5"],
+  filed:["Independent auditor's report, p. 19","“…raise <mark class='bad'>substantial doubt about the Company's ability to continue as a going concern</mark>.”","Cash on hand: $41,300 · monthly burn ≈ $62,000"],
+  verdict:"Rejected: going-concern language in the auditor's report and under 1 month of runway."},
+ {name:"Hexapay",sector:"Fintech",reason:"Priced at 92nd percentile",short:"$24M cap on $310k revenue",
+  pitch:["“Raising on a <mark>$24M valuation cap</mark>.”","Form C, offering terms"],
+  filed:["Revenues: $310,050 (2025)","Implied multiple: <mark class='bad'>77× revenue</mark>","Comparable rounds (n=214, same stage and sector): median 18×"],
+  verdict:"Rejected: price sits at the 92nd percentile of comparable rounds (limit: 80th)."},
+ {name:"Stackwell",sector:"Logistics",reason:"Team claim contradicted",short:"“Ex-Amazon founding team” not found",
+  pitch:["“Our <mark class='bad'>founding team previously led logistics at Amazon</mark>.”","Offering memorandum, p. 2"],
+  filed:["Form C, Directors and officers","CEO: prior role listed as independent consultant (2019–2024)","CTO: prior role listed as student"],
+  verdict:"Contradicted: officer histories in the filing do not support the claim."}
+];
+// [type, source, headline, sentiment -1..1, materiality 1..3]
+const NEWS={
+ loomwork:[["Competition","Competitor press release","DeskFlow raises $40M to push into mid-market workflow software",-1,3],["Customer","Trade press","Signs a 2,000-seat logistics customer",1,2],["Founder","Founder interview","CEO targets cash-flow break-even within 18 months",.5,1]],
+ gridnest:[["Regulation","Energy regulator","Battery storage incentive extended to 2029",1,3],["Competition","Market report","Two larger rivals cut prices by 15%",-.5,2],["Founder","Founder interview","First utility contract expected in Q1",.5,1]],
+ medisort:[["Regulation","Health regulator","Consultation opened on clinic software data rules",-1,3],["Customer","Local press","Clinic group expands rollout to 6 more sites",1,2],["Competition","Competitor statement","Incumbent records vendor teases a similar module, no date",0,1]],
+ farmfold:[["Customer","Trade press","Supermarket chain pilots Farmfold packaging",1,2],["Competition","Launch announcement","Copycat startup launches in the same region",-.5,1],["Founder","Company blog","Co-founder and COO departs",-1,2]],
+ ledgerly:[["Regulation","Payments regulator","Safeguarding rules tightened for e-money firms",-.5,2],["Customer","Bank press release","Partnership with a mid-size bank",1,2],["Competition","Competitor press release","Large fintech launches a free tier",-.5,2]],
+ quaycode:[["Competition","Developer forums","Open-source alternative passes 20k GitHub stars",-1,3],["Customer","Company update","Paying customers up 4× year on year",1,2],["Founder","Conference","CEO keynote at a major developer conference",.5,1]],
+ tidal:[["Regulation","Medicines regulator","Fast-track designation granted",1,3],["Competition","Journal article","Rival lab publishes competing approach",-.5,1],["Founder","Podcast","Founder declines to give trial timeline",0,1]],
+ parcelpath:[["Competition","Competitor statement","National courier announces its own last-mile app",-.5,2],["Customer","Retailer statement","Retailer renews 3-year contract",1,2],["Regulation","City council","Consultation on delivery van restrictions",-.5,1]],
+ civicstack:[["Customer","Procurement notice","Shortlisted for a fourth city contract",1,3],["Regulation","Government","Digital procurement framework opened to startups",.5,1],["Competition","Trade press","Consultancy launches rival civic platform",-.5,1]],
+ brightdesk:[["Regulation","Financial regulator","Licence delayed in one of four markets",-1,2],["Competition","Competitor press release","Rival cuts FX fees to zero",-1,2],["Founder","Founder interview","Founder says expansion will continue",.5,1]],
+ fluxa:[["Customer","Utility statement","Pilot extended but still unpaid",-.5,2],["Regulation","Energy regulator","New flexibility market rules favour small providers",1,2],["Competition","Market report","Three funded rivals enter demand-response",-1,2]],
+ nimbo:[["Customer","Trade press","Adds two regional fleet operators",.5,2],["Competition","Competitor press release","Telematics incumbent bundles fleet software free",-.5,1],["Founder","Company filing","CFO role vacant for 5 months",-.5,1]]
+};
+const AGENTS=[["Bull","growth case",.35],["Bear","downside case",-.35],["Competition analyst","market structure",0],["Regulatory analyst","policy and rules",0]];
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const SIG={};
+function analyse(id){
+  if(SIG[id]) return SIG[id];
+  const n=NEWS[id], wsum=n.reduce((s,x)=>s+x[4],0);
+  const signal=n.reduce((s,x)=>s+x[3]*x[4],0)/wsum;
+  const negShare=n.filter(x=>x[3]<0).reduce((s,x)=>s+x[4],0)/wsum;
+  const of=t=>n.filter(x=>x[0]===t);
+  const avg=a=>a.length?a.reduce((s,x)=>s+x[3]*x[4],0)/a.reduce((s,x)=>s+x[4],0):0;
+  const pos=n.filter(x=>x[3]>0), neg=n.filter(x=>x[3]<0);
+  const stances=[clamp(avg(pos)*.8+signal*.2+AGENTS[0][2],-1,1),clamp(avg(neg)*.8+signal*.2+AGENTS[1][2],-1,1),clamp(avg(of("Competition")),-1,1),clamp(of("Regulation").length?avg(of("Regulation")):signal*.5,-1,1)];
+  const mean=stances.reduce((a,b)=>a+b,0)/4, disagree=Math.sqrt(stances.reduce((s,x)=>s+(x-mean)**2,0)/4);
+  const vol=Math.round(100*clamp(.55*disagree/0.8+.45*negShare,0,1));
+  const best=[...n].sort((a,b)=>b[3]*b[4]-a[3]*a[4])[0], worst=[...n].sort((a,b)=>a[3]*a[4]-b[3]*b[4])[0];
+  const comp=of("Competition")[0], reg=of("Regulation")[0];
+  const lines=[
+    `${best[2]} (${best[1]}). That is demand we can point to, and it lines up with the filed revenue.`,
+    worst[3]<0?`My concern is this: ${worst[2].toLowerCase()} (${worst[1]}). That can move the next round's price.`:`I can't find a material negative. I'd still haircut the founder's forward-looking statements.`,
+    comp?`${comp[2]}. I read that as ${comp[3]<0?"a direct threat to pricing power":comp[3]>0?"a tailwind":"noise for now"}.`:`No direct competitive moves reported in this period.`,
+    reg?`${reg[2]}. Net effect on the business: ${reg[3]>0?"positive":reg[3]<0?"negative, with timing risk":"neutral"}.`:`No regulatory items. The risk here is commercial, not policy.`
+  ];
+  return SIG[id]={signal,negShare,stances,disagree,vol,lines,news:n};
+}
+const SECTORS=[...new Set(S.map(s=>s.sector))];
+const tilt=new Set();
+const COLORS=["#24508f","#3c6db0","#5585c4","#2e7d6b","#4a9a86","#6b5ca5","#8a7cc0","#a0577a","#c07656","#7d8a3a","#4f8db0","#94704a"];
+const $=id=>document.getElementById(id);
+const fmt=n=>"$"+Math.round(n).toLocaleString("en-US");
+let prev={},selected=null;
+
+const chips=$("chips");
+SECTORS.forEach(s=>{const b=document.createElement("button");b.className="chip";b.textContent=s;b.setAttribute("aria-pressed","false");
+  b.onclick=()=>{tilt.has(s)?tilt.delete(s):tilt.add(s);b.setAttribute("aria-pressed",tilt.has(s));render()};chips.appendChild(b)});
+
+function score(s,risk){
+  const g=Math.min(s.growth/300,1), r=Math.min(s.runway/24,1);
+  const fund=(risk*g+(1-risk)*r);
+  const ver=s.ver/s.claims, price=1-s.pct/100, sg=analyse(s.id), news=(sg.signal+1)/2;
+  let c=0.40*fund+0.30*ver+0.15*price+0.15*news;
+  if(tilt.size&&tilt.has(s.sector)) c*=1.25;
+  return {c,fund,ver,price,news,sg,volAdj:1-sg.vol/200};
+}
+function allocate(){
+  const risk=$("risk").value/100, res=$("reserve").value/100, n=+$("cheques").value;
+  const scored=S.map(s=>({...s,...score(s,risk)})).sort((a,b)=>b.c-a.c);
+  const picks=scored.slice(0,n), pool=100000*(1-res);
+  const w=picks.map(p=>p.c**3*p.volAdj), tot=w.reduce((a,b)=>a+b,0);
+  let amt=w.map(x=>Math.min(pool*x/tot,pool*0.25));
+  const spare=pool-amt.reduce((a,b)=>a+b,0); const unc=amt.map(a=>a<pool*0.25), ut=w.filter((_,i)=>unc[i]).reduce((a,b)=>a+b,0)||1;
+  amt=amt.map((a,i)=>unc[i]?a+spare*w[i]/ut:a).map(a=>Math.round(a/500)*500);
+  const diff=pool-amt.reduce((a,b)=>a+b,0); amt[0]+=diff;
+  picks.forEach((p,i)=>{p.amt=amt[i];p.col=COLORS[S.indexOf(S.find(s=>s.id===p.id))]});
+  return {picks,reserve:100000-pool,risk,res,n};
+}
+function sankey(a){
+  const svg=$("sankey"),H=300,top=10,gap=4,items=[...a.picks.map(p=>({label:p.name,v:p.amt,col:p.col})),{label:"Follow-on reserve",v:a.reserve,col:"var(--reserve)"}].filter(i=>i.v>0);
+  const avail=H-2*top-gap*(items.length-1); let y=top,ly=top,out=`<rect x="20" y="${top}" width="14" height="${H-2*top}" fill="var(--accent)" rx="2"/><text x="20" y="${H/2-8}" transform="rotate(-90 12 ${H/2})" class="m"></text>`;
+  items.forEach(it=>{const h=Math.max(it.v/100000*avail,2), lh=it.v/100000*(H-2*top);
+    out+=`<path d="M34 ${ly} C 250 ${ly}, 250 ${y}, 440 ${y} L440 ${y+h} C 250 ${y+h}, 250 ${ly+lh}, 34 ${ly+lh} Z" fill="${it.col}" opacity=".28"/>`;
+    out+=`<rect x="440" y="${y}" width="8" height="${h}" fill="${it.col}" rx="1"/>`;
+    out+=`<text x="456" y="${y+h/2+4}">${it.label}</text><text x="636" y="${y+h/2+4}" text-anchor="end" class="m">${fmt(it.v)}</text>`;
+    y+=h+gap; ly+=lh;});
+  out+=`<text x="42" y="${top+14}" class="m">$100,000</text>`;
+  svg.innerHTML=out;
+}
+function rows(a){
+  $("rows").innerHTML=a.picks.map(p=>{const d=p.amt-(prev[p.id]||0), conv=p.c>0.62?"<span class='pill hi'>High</span>":"<span class='pill md'>Medium</span>";
+    const dd=prev[p.id]!==undefined&&d!==0?`<div class="delta ${d>0?'up':'dn'}">${d>0?'+':'−'}${fmt(Math.abs(d))}</div>`:prev[p.id]===undefined&&Object.keys(prev).length?`<div class="delta up">new</div>`:"";
+    return `<tr tabindex="0" data-id="${p.id}" class="${selected===p.id?'sel':''}"><td><b>${p.name}</b></td><td>${p.sector}</td><td>${conv}<div class="bars" title="fundamentals / verification / price / news"><i style="width:${p.fund*0.40*100}%;background:var(--accent)"></i><i style="width:${p.ver*0.30*100}%;background:var(--ok)"></i><i style="width:${p.price*0.15*100}%;background:var(--warn)"></i><i style="width:${p.news*0.15*100}%;background:var(--reserve)"></i></div></td>
+      <td>${p.ver}/${p.claims} claims verified · revenue +${p.growth}% (filed) · ${p.pct}th pct price · news volatility ${p.sg.vol}/100</td><td class="right num">${fmt(p.amt)}${dd}</td></tr>`}).join("");
+  document.querySelectorAll("#rows tr").forEach(tr=>{const go=()=>{selected=tr.dataset.id;trace(a);signals(a);document.querySelectorAll("#rows tr").forEach(r=>r.classList.toggle("sel",r===tr))};tr.onclick=go;tr.onkeydown=e=>{if(e.key==="Enter")go()}});
+  prev=Object.fromEntries(a.picks.map(p=>[p.id,p.amt]));
+}
+function trace(a){
+  const p=a.picks.find(x=>x.id===selected)||a.picks[0]; selected=p.id;
+  $("traceH").textContent=`Where ${fmt(p.amt)} to ${p.name} came from`;
+  $("trace").innerHTML=`
+   <div><b>Claim in the pitch</b><div class="q">“${p.quote}” · offering memorandum p. ${p.page}</div></div>
+   <div><b>Checked against filed statements</b><div class="q">${p.fs}</div><mark class="ok">Verified within ±10%</mark></div>
+   <div><b>Rules applied</b><div class="q">No contradicted financial claims ✓ · price ${p.pct}th pct ≤ 80th ✓ · ${p.ver}/${p.claims} claims verified</div></div>
+   <div><b>News signal ${p.sg.signal>=0?"+":""}${p.sg.signal.toFixed(2)}</b><div class="q">${p.sg.news.length} items weighted by materiality · agent disagreement ${p.sg.disagree.toFixed(2)} · news volatility ${p.sg.vol}/100</div></div>
+   <div><b>Conviction score ${p.c.toFixed(2)}</b><div class="q">0.40 × fundamentals ${p.fund.toFixed(2)} + 0.30 × verification ${p.ver.toFixed(2)} + 0.15 × price ${p.price.toFixed(2)} + 0.15 × news ${p.news.toFixed(2)}${tilt.has(p.sector)?" · ×1.25 sector tilt":""}</div></div>
+   <div><b>Cheque ${fmt(p.amt)}</b><div class="q">Share of ${fmt(100000-a.reserve)} invested, weighted by conviction × volatility adjustment ${p.volAdj.toFixed(2)}, capped at 25%, rounded to $500</div></div>`;
+}
+function signals(a){
+  const p=a.picks.find(x=>x.id===selected)||a.picks[0], g=p.sg;
+  const sc=v=>v>0?"s-pos":v<0?"s-neg":"s-neu", sl=v=>v>0?"positive":v<0?"negative":"neutral";
+  $("sigH").textContent=`News, competition and statements · agent debate · ${p.name}`;
+  $("news").innerHTML=g.news.map(x=>`<div><div class="meta"><span class="t">${x[0]}</span><span>${x[1]}</span><span class="${sc(x[3])}">● ${sl(x[3])}</span><span>materiality ${"▮".repeat(x[4])}${"▯".repeat(3-x[4])}</span></div>${x[2]}</div>`).join("");
+  const mark=v=>`<span class="stance" title="stance ${v.toFixed(2)}"><i style="left:calc(${(v+1)/2*100}% - 2px)"></i></span>`;
+  const verdict=g.vol>=50?"size down":g.vol>=30?"size normally, watch closely":"size normally";
+  $("debate").innerHTML=AGENTS.map((ag,i)=>`<div class="msg"><div class="who">${ag[0]}<small>${ag[1]} ${mark(g.stances[i])}</small></div><p>${g.lines[i]}</p></div>`).join("")+
+    `<div class="msg chair"><div class="who">Chair<small>synthesis</small></div><p>Net news signal ${g.signal>=0?"+":""}${g.signal.toFixed(2)}. Agents disagree by ${g.disagree.toFixed(2)}, so I score news-driven volatility at ${g.vol}/100 and ${verdict}. Cheque weight × ${p.volAdj.toFixed(2)}.</p></div>`;
+  $("metrics").innerHTML=[
+    [`${g.signal>=0?"+":""}${g.signal.toFixed(2)}`,"Net news signal (−1 to +1)"],
+    [g.disagree.toFixed(2),"Agent disagreement (std. dev. of stances)"],
+    [`${g.vol}/100`,`News volatility · ${g.vol>=50?"High":g.vol>=30?"Medium":"Low"}`],
+    [`×${p.volAdj.toFixed(2)}`,"Effect on cheque weight"]
+  ].map(m=>`<div class="metric"><b>${m[0]}</b><span>${m[1]}</span></div>`).join("");
+}
+function rejected(){
+  $("rej").innerHTML=R.map((r,i)=>`<button data-i="${i}"><span class="x">✕</span><span><b>${r.name}</b> · ${r.reason}<small>${r.short}</small></span></button>`).join("");
+  document.querySelectorAll("#rej button").forEach(b=>b.onclick=()=>evidence(+b.dataset.i));
+}
+function evidence(i){
+  const r=R[i]; $("evH").textContent=`Evidence · ${r.name}`;
+  $("ev").innerHTML=`<div class="doc"><h3>What the pitch says</h3><p>${r.pitch[0]}</p><p class="foot">${r.pitch[1]}</p></div>
+    <div class="doc"><h3>What was filed with the SEC</h3>${r.filed.map(f=>`<p>${f}</p>`).join("")}</div>
+    <p class="verdict" style="grid-column:1/-1;color:var(--bad);margin:0">${r.verdict}</p>`;
+}
+// seeded RNG so numbers are stable across renders
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296}}
+function draw(r){const u=r();return u<.55?0:u<.75?0.5+r()*.5:u<.90?1+r()*2:u<.97?3+r()*7:10+r()*40}
+function sim(n,reserveFrac,runs=10000){
+  const r=rng(42);let ok=0;
+  for(let k=0;k<runs;k++){const each=(1-reserveFrac)/n;let v=0;const mult=[];
+    for(let j=0;j<n;j++){const m=draw(r);mult.push(m);v+=each*m}
+    // reserve goes into the best 2 performers at a 2x step-up (follow-on into winners)
+    if(reserveFrac>0){mult.sort((a,b)=>b-a);const top=mult.slice(0,2).filter(m=>m>=1);v+=top.length?top.reduce((s,m)=>s+reserveFrac/top.length*Math.max(m/2,0.5),0):reserveFrac;}
+    if(v>=1)ok++;}
+  return ok/runs;
+}
+function render(){
+  const a=allocate();
+  $("riskV").textContent=a.risk>0.66?"High":a.risk>0.33?"Balanced":"Low";
+  $("reserveV").textContent=Math.round(a.res*100)+"%";
+  $("chequesV").textContent=a.n;
+  $("fNRec").textContent=a.n;
+  sankey(a);rows(a);trace(a);signals(a);
+  $("simA").querySelector("b").textContent=Math.round(sim(3,0)*100)+"%";
+  $("simB").querySelector("b").textContent=Math.round(sim(a.n,a.res)*100)+"%";
+  $("simBl").textContent=`This plan: ${a.n} cheques, ${Math.round(a.res*100)}% reserve`;
+}
+["risk","reserve","cheques"].forEach(id=>$(id).addEventListener("input",render));
+rejected();evidence(0);render();
+</script>

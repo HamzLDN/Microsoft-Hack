@@ -1,0 +1,438 @@
+<title>Mandate</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one focused screen at a time, centred column; detail opens as a right-hand drawer */
+:root{
+  --bg:#f5f6f3; --panel:#ffffff; --fg:#14181a; --muted:#5f6b66; --line:#dde2dd;
+  --accent:#0f6b52; --accent-soft:#dcefe7; --ok:#1d7a4a; --ok-soft:#e1f2e8; --bad:#b4372b; --bad-soft:#f8e4e1; --warn:#946200; --warn-soft:#f5ecd5;
+  --display:"Bricolage Grotesque",Georgia,serif; --sans:"Figtree",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1211;--panel:#151b19;--fg:#e7ecea;--muted:#9aa8a2;--line:#26302d;--accent:#4fc39b;--accent-soft:#163229;--ok:#5cc58b;--ok-soft:#14301f;--bad:#f0877c;--bad-soft:#3a1c19;--warn:#e2b552;--warn-soft:#32290f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1211;--panel:#151b19;--fg:#e7ecea;--muted:#9aa8a2;--line:#26302d;--accent:#4fc39b;--accent-soft:#163229;--ok:#5cc58b;--ok-soft:#14301f;--bad:#f0877c;--bad-soft:#3a1c19;--warn:#e2b552;--warn-soft:#32290f;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em}
+.brand i{font-style:normal;color:var(--accent)}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{font-size:12px;color:var(--muted);padding:2px 8px;border-radius:999px}
+.steps span.on{background:var(--accent-soft);color:var(--accent)}
+.main{max-width:1080px;margin:0 auto;padding-block:28px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.screen{display:none;animation:in .45s cubic-bezier(.2,.7,.2,1)}
+.screen.on{display:block}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+h1{font-family:var(--display);font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0 0 10px;text-wrap:balance;letter-spacing:-.02em}
+h2{font-family:var(--display);font-size:22px;margin:0 0 6px}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.lead{color:var(--muted);max-width:60ch;margin:0 0 22px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.btn{font:inherit;font-weight:600;border:0;background:var(--accent);color:var(--bg);padding:11px 18px;border-radius:10px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn:focus-visible,.chip:focus-visible,.preset:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:22px}
+.preset{all:unset;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:4px;transition:border-color .2s,transform .2s}
+.preset:hover{transform:translateY(-2px)}
+.preset.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.preset b{font-size:14px} .preset span{font-size:12px;color:var(--muted)}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+label{display:grid;gap:6px;font-size:13px;font-weight:500}
+input[type=range]{accent-color:var(--accent);width:100%}
+select,textarea{font:inherit;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px}
+textarea{min-height:84px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+/* loader */
+.loader{display:grid;place-items:center;min-height:50vh;text-align:center;gap:18px}
+.orb{width:56px;height:56px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loadlog{font-family:var(--mono);font-size:13px;color:var(--muted);display:grid;gap:4px;text-align:left}
+.loadlog div{animation:in .3s}
+.loadlog div::before{content:"✓ ";color:var(--ok)}
+/* rules */
+.rules{display:grid;gap:8px}
+.rule{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;animation:in .35s both}
+.cid{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:5px}
+.kind{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;cursor:pointer;border:0;font-family:inherit}
+.kind.hard{background:var(--bad-soft);color:var(--bad)} .kind.soft{background:var(--warn-soft);color:var(--warn)}
+.src{font-size:11px;color:var(--muted)}
+.x{all:unset;cursor:pointer;color:var(--muted);padding:0 4px}
+@media (max-width:560px){.rule{grid-template-columns:auto 1fr}.rule .src{grid-column:2}}
+/* funnel */
+.funnel{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.fstep{flex:1 1 120px;border-left:3px solid var(--accent);padding:2px 10px}
+.fstep b{font-family:var(--mono);font-size:24px;font-weight:500;display:block}
+.fstep span{font-size:12px;color:var(--muted)}
+/* portfolio */
+.pgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+@media (max-width:820px){.pgrid{grid-template-columns:1fr}}
+.alloc{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0 14px}
+.alloc i{display:block;height:100%;transition:width .5s}
+.hold{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:12px;padding:10px 6px;border-top:1px solid var(--line);cursor:pointer;border-radius:6px;transition:background .15s}
+.hold:hover{background:var(--accent-soft)}
+.dot{width:10px;height:10px;border-radius:3px;margin-top:6px}
+.pc{font-size:12.5px;display:flex;gap:12px;flex-wrap:wrap;margin-top:2px}
+.pro{color:var(--ok)} .con{color:var(--bad)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat div{border-top:2px solid var(--line);padding-top:6px}
+.stat b{font-family:var(--mono);font-size:20px;font-weight:500;display:block}
+.stat span{font-size:12px;color:var(--muted)}
+/* table */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--accent-soft)}
+tr.dim{opacity:.35}
+.st{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st.in{background:var(--ok-soft);color:var(--ok)} .st.out{background:var(--bad-soft);color:var(--bad)}
+.cf{font-size:12px;color:var(--warn)}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--bg);z-index:21;transform:translateX(100%);transition:transform .35s cubic-bezier(.2,.7,.2,1);overflow-y:auto;padding:20px max(18px,env(safe-area-inset-right,0px)) 40px 18px;padding-top:calc(20px + env(safe-area-inset-top,0px));border-left:1px solid var(--line)}
+.drawer.on{transform:none}
+.dsec{margin-top:18px}
+.tf{display:flex;gap:4px}
+.tf button{font:inherit;font-size:12px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:4px 10px;border-radius:999px;cursor:pointer}
+.tf button.on{background:var(--fg);color:var(--bg)}
+.price{display:flex;align-items:baseline;gap:10px}
+.price b{font-family:var(--mono);font-size:28px;font-weight:500}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.m{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.m span{font-size:11px;color:var(--muted);display:block} .m b{font-family:var(--mono);font-weight:500}
+.pcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.pcgrid{grid-template-columns:1fr}}
+.pcgrid ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.box{border-radius:10px;padding:12px}
+.box.p{background:var(--ok-soft)} .box.c{background:var(--bad-soft)}
+.box h3{margin-bottom:6px} .box.p h3{color:var(--ok)} .box.c h3{color:var(--bad)}
+.checks{display:grid;gap:4px;font-size:13.5px}
+.checks div{display:grid;grid-template-columns:22px auto 1fr;gap:8px;align-items:center}
+.agent{display:grid;grid-template-columns:38px 1fr;gap:10px;margin-bottom:10px;animation:in .4s both}
+.av{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-family:var(--display);color:var(--bg)}
+.agent p{margin:2px 0 0;font-size:13.5px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.agent .who{font-size:13px;font-weight:600} .agent .who span{font-weight:400;color:var(--muted);font-size:12px}
+.decision{border:2px solid var(--accent);border-radius:12px;padding:14px;background:var(--accent-soft)}
+/* swipe */
+.deck{position:relative;height:380px;max-width:360px;margin:0 auto}
+.sc{position:absolute;inset:0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;align-content:start;gap:10px;touch-action:none;cursor:grab;transition:transform .3s,opacity .3s;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.sc .tag{justify-self:start}
+.learn{font-size:13px;color:var(--accent);min-height:20px;text-align:center;margin-top:12px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,40px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;transition:.3s;z-index:30;max-width:90vw}
+.toast.on{transform:translate(-50%,0);opacity:1}
+.settings{position:fixed;top:calc(60px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;z-index:25;width:250px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.settings label{display:flex;gap:8px;font-weight:400;align-items:center}
+.foot{font-size:12px;color:var(--muted);margin-top:24px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="brand">Mandate<i>.</i></div>
+  <div class="steps" id="steps"><span>Client</span><span>Preferences</span><span>Understood</span><span>Portfolio</span><span>Considered</span><span>Challenge</span></div>
+  <button class="btn ghost" id="setBtn" style="padding:7px 12px;font-size:13px">Metrics</button>
+</div>
+<div class="settings" id="settings" hidden><h3>Metrics shown</h3><div id="setList" style="display:grid;gap:6px"></div></div>
+
+<div class="main">
+  <!-- 1 welcome -->
+  <section class="screen on" data-s="0">
+    <h1>Your rules.<br>Your portfolio.<br>Every reason shown.</h1>
+    <p class="lead">Tell us who you are and what you won't compromise on. Mandate builds a $100,000 portfolio around it and shows the pros, cons and rule behind every decision.</p>
+    <h3>Who is investing?</h3>
+    <div class="presets" id="presets"></div>
+    <button class="btn" data-go="1">Continue</button>
+  </section>
+
+  <!-- 2 preferences -->
+  <section class="screen" data-s="1">
+    <h1>What matters to you</h1>
+    <p class="lead">Set the basics, then add anything else in your own words.</p>
+    <div class="card form">
+      <label for="risk">Risk appetite <span class="num" id="riskV" style="color:var(--muted)"></span><input id="risk" type="range" min="1" max="5" value="4"></label>
+      <label for="hz">Time horizon<select id="hz"><option>3 years</option><option selected>7+ years</option><option>15+ years</option></select></label>
+      <label for="cap">Max per holding<select id="cap"><option>10%</option><option selected>15%</option><option>20%</option></select></label>
+      <div><label style="margin-bottom:6px">Sectors to favour</label><div class="chips" id="fav"></div></div>
+      <div><label style="margin-bottom:6px">Exclude</label><div class="chips" id="exc"></div></div>
+      <label for="free" style="grid-column:1/-1">Anything else? <textarea id="free">I don't want companies that made big layoffs this year. I care about AI and climate, and I'd rather own profitable companies, but I can live with some volatility.</textarea></label>
+    </div>
+    <div class="row" style="margin-top:16px"><button class="btn ghost" data-go="0">Back</button><button class="btn" id="parseBtn">Understand my preferences</button></div>
+  </section>
+
+  <!-- 3 loading -->
+  <section class="screen" data-s="2">
+    <div class="loader"><div class="orb"></div><h2 id="loadH">Reading your preferences</h2><div class="loadlog" id="loadlog"></div></div>
+  </section>
+
+  <!-- 4 understood -->
+  <section class="screen" data-s="3">
+    <h1>Here's what we understood</h1>
+    <p class="lead">Each line is a rule the portfolio must follow. Tap <b>Hard rule</b> / <b>Preference</b> to switch it, remove anything wrong, or add your own.</p>
+    <div class="rules" id="rules"></div>
+    <div class="row" style="margin-top:10px"><input id="newRule" placeholder="Add a rule, e.g. no Chinese ADRs" style="flex:1;min-width:200px;font:inherit;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px"><button class="btn ghost" id="addRule">Add</button></div>
+    <div class="row" style="margin-top:18px"><button class="btn ghost" data-go="1">Back</button><button class="btn" id="buildBtn">Build my portfolio</button></div>
+  </section>
+
+  <!-- 5 portfolio -->
+  <section class="screen" data-s="4">
+    <div class="funnel" id="funnel"></div>
+    <div class="pgrid">
+      <div class="card">
+        <h3>Recommended: $100,000</h3>
+        <div class="alloc" id="alloc"></div>
+        <div id="holds"></div>
+      </div>
+      <div style="display:grid;gap:16px;align-content:start">
+        <div class="card"><h3>Portfolio vs your rules</h3><div class="stat" id="pstat"></div></div>
+        <div class="card"><h3>Trust</h3><div class="stat" id="trust"></div></div>
+        <div class="row"><button class="btn" data-go="5">See everything we considered</button><button class="btn ghost" data-go="6">Challenge it</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 considered -->
+  <section class="screen" data-s="5">
+    <h1>Everything we considered</h1>
+    <p class="lead">Click a rule to highlight what it affected. Click a company for the full analysis.</p>
+    <div class="chips" id="ruleFilter" style="margin-bottom:12px"></div>
+    <div class="card tbl"><table><thead><tr><th>Company</th><th>Status</th><th>Main reason</th><th>What would change it</th><th style="text-align:right">Amount</th></tr></thead><tbody id="ctable"></tbody></table></div>
+    <div class="row" style="margin-top:16px"><button class="btn ghost" data-go="4">Back to portfolio</button><button class="btn" data-go="6">Challenge it</button></div>
+  </section>
+
+  <!-- 7 swipe -->
+  <section class="screen" data-s="6">
+    <h1 style="text-align:center">Challenge the AI</h1>
+    <p class="lead" style="text-align:center;margin-inline:auto">Swipe right to own it, left to drop it. The portfolio rebalances and tells you what changed.</p>
+    <div class="deck" id="deck"></div>
+    <div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" id="noBtn">✕ Drop</button><button class="btn ghost" id="infoBtn">Details</button><button class="btn" id="yesBtn">✓ Own</button></div>
+    <div class="learn" id="learn"></div>
+    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost" data-go="4">See updated portfolio</button></div>
+  </section>
+  <p class="foot">Model UI with fictional companies and illustrative figures. Educational hackathon project. Not financial advice.</p>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Company analysis"></aside>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id), fmt=n=>"$"+Math.round(n).toLocaleString("en-US");
+const PRESETS=[["Exited founder","High growth, 7+ years, has red lines",1],["Pension fund","Steady long-term growth",0],["Ethical charity","Only invests ethically",0],["University endowment","Funds scholarships every year",0],["Insurer","Needs low risk",0],["Someone else","Start from a blank slate",0]];
+const SECT=["AI & software","Climate","Healthcare","Fintech","Semiconductors","Consumer","Energy"];
+const COL=["#0f6b52","#2f8f72","#4fae8e","#3b6ea5","#6b8fc6","#8a6bb8","#b5779a","#c38a4c","#7a8c3a","#4a9bb0"];
+let preset=0;
+// [ticker,name,sector,price,ret1y,revG,grossM,fcfM,pe,vol,dd,beta,mcapB,layoffs,fossil,news(+/-,text)]
+const RAW=[
+["NVLT","Novalith Compute","Semiconductors",182,64,48,71,32,46,44,-28,1.6,410,0,0,[1,"Hyperscaler order backlog extended into next year"],[-1,"Export rules tightened on advanced chips"]],
+["CRDL","Cordial Software","AI & software",96,38,31,78,24,52,33,-19,1.2,64,0,0,[1,"Launched AI agent product, 900 enterprise trials"],[-1,"Larger rival bundles a similar tool for free"]],
+["HLXG","Helix Grid","Climate",44,22,27,34,6,38,36,-24,1.1,18,0,0,[1,"Storage incentive extended to 2029"],[-1,"Two rivals cut prices by 15%"]],
+["MEDV","Medivance","Healthcare",121,18,22,64,18,34,24,-14,.8,52,0,0,[1,"Fast-track review granted for lead device"],[-1,"Reimbursement consultation opened"]],
+["PAYO","Payora","Fintech",58,29,26,58,15,31,31,-21,1.3,27,0,0,[1,"Bank partnership adds 2M users"],[-1,"Safeguarding rules tightened"]],
+["SOLR","Solari Systems","Climate",31,-6,24,29,-4,0,52,-41,1.7,9,0,0,[1,"Utility-scale contract win"],[-1,"Guidance cut on supply delays"]],
+["QNTM","Quantim Labs","AI & software",17,85,41,62,-18,0,68,-46,2.1,6,0,0,[1,"Record bookings quarter"],[-1,"Cash runway questioned by analysts"]],
+["ORBX","Orbix Cloud","AI & software",210,21,23,74,29,44,29,-17,1.1,140,1,0,[1,"Margins at record high"],[-1,"Cut 12% of staff in March"]],
+["PTRX","Petrex Energy","Energy",77,12,9,41,22,11,27,-18,.9,95,0,1,[1,"Dividend raised 8%"],[-1,"Oil price outlook softening"]],
+["VRDA","Verdana Foods","Consumer",39,4,6,38,9,19,18,-11,.6,22,0,0,[1,"New plant-based line sold out"],[-1,"Input costs rising"]],
+["SILC","Siliconda","Semiconductors",66,41,34,55,21,29,39,-23,1.4,48,0,0,[1,"New fab on schedule"],[-1,"Customer concentration: top client 38% of sales"]],
+["AERO","Aeronyx","Climate",23,33,52,22,-9,0,49,-35,1.5,4,0,0,[1,"Government grant for electric aircraft"],[-1,"Certification timeline slipped 6 months"]],
+["TELM","Telemed One","Healthcare",28,-12,14,61,7,24,35,-38,1.2,7,1,0,[1,"New insurer contract"],[-1,"Closed two offices, 400 roles cut"]],
+["LUMA","Lumax Robotics","AI & software",74,52,37,49,11,58,46,-30,1.6,33,0,0,[1,"Warehouse robot orders doubled"],[-1,"Key patent challenged by competitor"]]
+];
+let RULES=[];
+const ALLM={mcap:["Market cap",s=>`$${s.mcap}B`],ret:["1Y return",s=>`${s.ret>0?"+":""}${s.ret}%`],pe:["P/E",s=>s.pe?s.pe+"×":"n/a (loss)"],revg:["Revenue growth",s=>`+${s.revg}%`],gm:["Gross margin",s=>s.gm+"%"],fcf:["FCF margin",s=>s.fcf+"%"],vol:["Volatility (1Y)",s=>s.vol+"%"],dd:["Max drawdown",s=>s.dd+"%"],beta:["Beta",s=>s.beta.toFixed(1)]};
+let shownM=new Set(Object.keys(ALLM));
+try{const v=JSON.parse(localStorage.getItem("mandate-metrics"));if(Array.isArray(v)&&v.length)shownM=new Set(v)}catch(e){}
+const S=RAW.map((r,i)=>({t:r[0],name:r[1],sector:r[2],px:r[3],ret:r[4],revg:r[5],gm:r[6],fcf:r[7],pe:r[8],vol:r[9],dd:r[10],beta:r[11],mcap:r[12],layoffs:r[13],fossil:r[14],newsP:r[15][1],newsN:r[16][1],i}));
+let override={}; // swipe decisions
+let learned={profit:0,growth:0};
+
+// ---------- navigation
+function go(n){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",+s.dataset.s===n));
+  const map=[0,1,1,2,3,4,5];document.querySelectorAll("#steps span").forEach((s,i)=>s.classList.toggle("on",i===map[n]));
+  if(n===4)renderPortfolio(); if(n===5)renderConsidered(); if(n===6)renderDeck(); window.scrollTo({top:0,behavior:"smooth"});}
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),2600)}
+
+// ---------- welcome + prefs
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="preset ${i===0?"sel":""}" data-i="${i}"><b>${p[0]}</b><span>${p[1]}</span></button>`).join("");
+document.querySelectorAll(".preset").forEach(b=>b.onclick=()=>{preset=+b.dataset.i;document.querySelectorAll(".preset").forEach(x=>x.classList.toggle("sel",x===b))});
+const chipset=(el,list,on)=>{$(el).innerHTML=list.map(s=>`<button class="chip" aria-pressed="${on.includes(s)}">${s}</button>`).join("");$(el).querySelectorAll(".chip").forEach(c=>c.onclick=()=>c.setAttribute("aria-pressed",c.getAttribute("aria-pressed")!=="true"))};
+chipset("fav",SECT,["AI & software","Climate"]);chipset("exc",["Fossil fuels","Tobacco","Weapons","Gambling"],["Fossil fuels","Tobacco"]);
+const RISK=["Very low","Low","Balanced","High","Very high"];
+const setRisk=()=>$("riskV").textContent=RISK[$("risk").value-1];$("risk").oninput=setRisk;setRisk();
+
+$("parseBtn").onclick=()=>{
+  go(2);const log=$("loadlog");log.innerHTML="";
+  const lines=["Read 4 form settings","Read 38 words of free text","Found 7 requirements","Marked 4 as hard rules, 3 as preferences","Linked each rule to a data field"];
+  lines.forEach((l,i)=>setTimeout(()=>{log.insertAdjacentHTML("beforeend",`<div>${l}</div>`)},350*(i+1)));
+  setTimeout(()=>{buildRules();go(3)},350*lines.length+500);
+};
+function buildRules(){
+  const cap=$("cap").value, favs=[...$("fav").querySelectorAll("[aria-pressed=true]")].map(c=>c.textContent), exc=[...$("exc").querySelectorAll("[aria-pressed=true]")].map(c=>c.textContent);
+  RULES=[
+    {id:"C1",text:"High growth: revenue growing at least 20% a year",kind:"hard",src:"Client profile",f:s=>s.revg>=20,why:s=>`Revenue growth ${s.revg}% is below 20%`},
+    {id:"C2",text:`No more than ${cap} in any one company`,kind:"hard",src:"Form",f:()=>true},
+    {id:"C3",text:`Exclude: ${exc.join(", ")||"none"}`,kind:"hard",src:"Form",f:s=>!(exc.includes("Fossil fuels")&&s.fossil),why:()=>"Main revenue from oil and gas"},
+    {id:"C4",text:"No companies that made major layoffs in the last 12 months",kind:"hard",src:"Your words: “big layoffs this year”",f:s=>!s.layoffs,why:s=>s.newsN},
+    {id:"C5",text:`Favour ${favs.join(" and ")||"no sector"}`,kind:"soft",src:"Form + your words: “AI and climate”",f:s=>favs.includes(s.sector)||(favs.includes("AI & software")&&s.sector==="Semiconductors")},
+    {id:"C6",text:"Prefer profitable companies (positive free cash flow)",kind:"soft",src:"Your words: “rather own profitable companies”",f:s=>s.fcf>0},
+    {id:"C7",text:`Volatility up to ${30+$("risk").value*4}% is acceptable`,kind:"soft",src:`Risk slider + “some volatility”`,f:s=>s.vol<=30+$("risk").value*4}
+  ];
+  renderRules();
+}
+function renderRules(){
+  $("rules").innerHTML=RULES.map((r,i)=>`<div class="rule" style="animation-delay:${i*60}ms"><span class="cid">${r.id}</span><div>${r.text}<div class="src">${r.src}</div></div><button class="kind ${r.kind}" data-i="${i}">${r.kind==="hard"?"Hard rule":"Preference"}</button><button class="x" data-x="${i}" aria-label="Remove ${r.id}">✕</button></div>`).join("");
+  $("rules").querySelectorAll(".kind").forEach(b=>b.onclick=()=>{const r=RULES[b.dataset.i];r.kind=r.kind==="hard"?"soft":"hard";renderRules()});
+  $("rules").querySelectorAll(".x").forEach(b=>b.onclick=()=>{RULES.splice(+b.dataset.x,1);renderRules()});
+}
+$("addRule").onclick=()=>{const v=$("newRule").value.trim();if(!v)return;RULES.push({id:"C"+(RULES.length+1),text:v,kind:"soft",src:"Added by you",f:()=>true});$("newRule").value="";renderRules()};
+$("buildBtn").onclick=()=>{go(2);$("loadH").textContent="Building your portfolio";const log=$("loadlog");log.innerHTML="";
+  ["Screened 14 companies against hard rules","Fundamentals analyst reviewed filings","Markets & news analyst read 42 articles","Client-fit analyst checked every rule","Optimised weights within limits","Checked 186 numbers against source data"].forEach((l,i)=>setTimeout(()=>log.insertAdjacentHTML("beforeend",`<div>${l}</div>`),330*(i+1)));
+  setTimeout(()=>{$("loadH").textContent="Reading your preferences";go(4)},330*7);};
+
+// ---------- engine
+function evaluate(){
+  const capPct=parseInt($("cap").value)/100;
+  const res=S.map(s=>{
+    const checks=RULES.map(r=>({r,pass:r.f(s)}));
+    const hardFail=checks.filter(c=>c.r.kind==="hard"&&!c.pass);
+    let score=0.35*Math.min(s.revg/50,1)+0.25*(s.fcf>0?Math.min(s.fcf/30,1):0)+0.2*(1-s.vol/80)+0.2*Math.min(Math.max(s.ret,0)/60,1);
+    checks.filter(c=>c.r.kind==="soft").forEach(c=>score+=c.pass?0.12:-0.12);
+    score+=learned.profit*(s.fcf>0?.1:-.1)+learned.growth*(s.revg/50)*.1;
+    return {...s,checks,hardFail,score};
+  });
+  let elig=res.filter(s=>!s.hardFail.length&&override[s.t]!=="out").sort((a,b)=>b.score-a.score);
+  const forced=res.filter(s=>override[s.t]==="in"&&!elig.includes(s));
+  let picks=elig.slice(0,8);forced.forEach(f=>{if(!picks.includes(f))picks.push(f)});
+  picks=picks.filter(p=>override[p.t]!=="out");
+  const w=picks.map(p=>Math.max(p.score,.05)**2), tot=w.reduce((a,b)=>a+b,0);
+  let amt=w.map(x=>Math.min(x/tot,capPct)*100000);
+  for(let k=0;k<5;k++){const left=100000-amt.reduce((a,b)=>a+b,0);const free=amt.map(a=>a<capPct*100000-1);const fw=w.filter((_,i)=>free[i]).reduce((a,b)=>a+b,0);if(left<1||!fw)break;amt=amt.map((a,i)=>free[i]?Math.min(a+left*w[i]/fw,capPct*100000):a)}
+  amt=amt.map(a=>Math.round(a/500)*500);if(amt.length)amt[0]+=100000-amt.reduce((a,b)=>a+b,0);
+  picks.forEach((p,i)=>{p.amt=amt[i];p.col=COL[i%COL.length]});
+  res.forEach(s=>{const p=picks.find(x=>x.t===s.t);s.inc=!!p;s.amt=p?p.amt:0;s.col=p?p.col:"var(--line)";
+    s.pros=[];s.cons=[];
+    if(s.revg>=30)s.pros.push(`Revenue +${s.revg}% a year (C1)`);else if(s.revg>=20)s.pros.push(`Revenue +${s.revg}%, meets C1`);
+    if(s.fcf>0)s.pros.push(`Free cash flow margin ${s.fcf}% (C6)`);else s.cons.push(`Burning cash: FCF margin ${s.fcf}% (C6)`);
+    if(s.gm>=60)s.pros.push(`High gross margin ${s.gm}%`);
+    s.pros.push(s.newsP);s.cons.push(s.newsN);
+    const volR=RULES.find(r=>r.id==="C7");if(volR&&!volR.f(s))s.cons.push(`Volatility ${s.vol}% is above your limit (C7)`);
+    if(s.pe>45)s.cons.push(`Expensive: P/E ${s.pe}×`);
+    if(s.dd<-30)s.cons.push(`Fell ${-s.dd}% peak to trough in the last year`);
+    if(!s.cons.length)s.cons.push("Smaller upside than higher-growth peers");
+    s.reason=s.hardFail.length?`Fails ${s.hardFail[0].r.id}: ${(s.hardFail[0].r.why||(()=>s.hardFail[0].r.text))(s)}`:override[s.t]==="out"?"Dropped by you":s.inc?s.pros[0]:`Ranked below the top 8: ${s.cons[0]}`;
+    s.cf=s.hardFail.length?(s.hardFail[0].r.id==="C1"?`Enters at ~$6,500 if C1 is lowered to ${s.revg}%`:`Only if you remove ${s.hardFail[0].r.id}`):s.inc?"":`Enters at ~$5,000 if you add it, or relax C7`;
+  });
+  return {res,picks};
+}
+
+// ---------- portfolio
+function renderPortfolio(){
+  const {res,picks}=evaluate();
+  const hardOut=res.filter(s=>s.hardFail.length).length;
+  $("funnel").innerHTML=[[res.length,"companies screened"],[res.length-hardOut,"pass your hard rules"],[picks.length,"in your portfolio"]].map(f=>`<div class="fstep"><b>${f[0]}</b><span>${f[1]}</span></div>`).join("");
+  $("alloc").innerHTML=picks.map(p=>`<i style="width:${p.amt/1000}%;background:${p.col}" title="${p.name}"></i>`).join("");
+  $("holds").innerHTML=picks.sort((a,b)=>b.amt-a.amt).map(p=>`<div class="hold" data-t="${p.t}" tabindex="0"><span class="dot" style="background:${p.col}"></span><div><b>${p.name}</b> <span class="num" style="color:var(--muted);font-size:12px">${p.t} · ${p.sector}</span><div class="pc"><span class="pro">+ ${p.pros[0]}</span><span class="con">− ${p.cons[0]}</span></div></div><b class="num">${fmt(p.amt)}</b></div>`).join("");
+  document.querySelectorAll(".hold").forEach(h=>{h.onclick=()=>openDrawer(h.dataset.t);h.onkeydown=e=>{if(e.key==="Enter")openDrawer(h.dataset.t)}});
+  const wavg=k=>picks.reduce((s,p)=>s+p[k]*p.amt,0)/100000;
+  const profitable=picks.filter(p=>p.fcf>0).reduce((s,p)=>s+p.amt,0)/1000;
+  const fav=RULES.find(r=>r.id==="C5");const favPct=fav?picks.filter(p=>fav.f(p)).reduce((s,p)=>s+p.amt,0)/1000:0;
+  $("pstat").innerHTML=[[`+${wavg("revg").toFixed(0)}%`,"Avg revenue growth (C1)"],[`${profitable.toFixed(0)}%`,"In profitable companies (C6)"],[`${favPct.toFixed(0)}%`,"In favoured sectors (C5)"],[`${wavg("vol").toFixed(0)}%`,"Weighted volatility (C7)"]].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
+  $("trust").innerHTML=`<div><b>186/186</b><span>numbers matched to source</span></div><div><b>${RULES.length}</b><span>rules applied to every company</span></div>`;
+}
+
+// ---------- considered
+let ruleHi=null;
+function renderConsidered(){
+  const {res}=evaluate();
+  $("ruleFilter").innerHTML=RULES.map(r=>`<button class="chip" aria-pressed="${ruleHi===r.id}" data-r="${r.id}">${r.id} · ${r.text.length>34?r.text.slice(0,34)+"…":r.text}</button>`).join("");
+  $("ruleFilter").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ruleHi=ruleHi===c.dataset.r?null:c.dataset.r;renderConsidered()});
+  const sorted=[...res].sort((a,b)=>b.amt-a.amt||b.score-a.score);
+  $("ctable").innerHTML=sorted.map(s=>{const hit=!ruleHi||s.checks.some(c=>c.r.id===ruleHi&&!c.pass);
+    return `<tr data-t="${s.t}" tabindex="0" class="${hit?"":"dim"}"><td><b>${s.name}</b><div class="num" style="font-size:12px;color:var(--muted)">${s.t} · ${s.sector}</div></td><td><span class="st ${s.inc?"in":"out"}">${s.inc?"Included":"Excluded"}</span></td><td>${s.reason}${s.inc?`<div class="con" style="font-size:12px">− ${s.cons[0]}</div>`:""}</td><td class="cf">${s.cf}</td><td class="num" style="text-align:right">${s.inc?fmt(s.amt):"–"}</td></tr>`}).join("");
+  $("ctable").querySelectorAll("tr").forEach(tr=>{tr.onclick=()=>openDrawer(tr.dataset.t);tr.onkeydown=e=>{if(e.key==="Enter")openDrawer(tr.dataset.t)}});
+}
+
+// ---------- drawer
+function series(s,tf){const n={"1W":35,"1M":22,"6M":26,"1Y":52,"5Y":60}[tf],span={"1W":.04,"1M":.08,"6M":.3,"1Y":1,"5Y":3}[tf];
+  let seed=s.i*97+tf.length*13+n;const r=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const drift=Math.log(1+s.ret/100)*span/n, sd=s.vol/100*Math.sqrt(span/n);
+  let v=[1];for(let k=1;k<n;k++)v.push(v[k-1]*Math.exp(drift+sd*(r()+r()+r()-1.5)*1.4));
+  const end=v[n-1];return v.map(x=>x/end*s.px)}
+function chart(s,tf){const d=series(s,tf),W=600,H=180,mn=Math.min(...d),mx=Math.max(...d),up=d[d.length-1]>=d[0];
+  const x=i=>i/(d.length-1)*W,y=v=>H-8-(v-mn)/(mx-mn||1)*(H-24);const pts=d.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const c=up?"var(--ok)":"var(--bad)";const ch=(d[d.length-1]/d[0]-1)*100;
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${tf} price chart"><defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${up?"#1d7a4a":"#b4372b"}" stop-opacity=".22"/><stop offset="1" stop-color="${up?"#1d7a4a":"#b4372b"}" stop-opacity="0"/></linearGradient></defs><polygon points="0,${H} ${pts} ${W},${H}" fill="url(#g)"/><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2"/><circle cx="${W}" cy="${y(d[d.length-1])}" r="3.5" fill="${c}"/><text x="2" y="12">${mx.toFixed(2)}</text><text x="2" y="${H-2}">${mn.toFixed(2)}</text></svg>`,ch};}
+const AG=[["F","Fundamentals analyst","filings and financials","#3b6ea5"],["N","Markets & news analyst","news, competitors, events","#b5779a"],["C","Client-fit analyst","your rules C1–C"+"n","#0f6b52"]];
+function openDrawer(t){
+  const {res}=evaluate();const s=res.find(x=>x.t===t);let tf="1Y";
+  const draw=()=>{const c=chart(s,tf);$("chartBox").innerHTML=c.svg;$("chg").innerHTML=`<span class="${c.ch>=0?"pro":"con"}">${c.ch>=0?"+":""}${c.ch.toFixed(1)}% · ${tf}</span>`;document.querySelectorAll(".tf button").forEach(b=>b.classList.toggle("on",b.textContent===tf))};
+  const volRisk=Math.round(Math.min(100,s.vol*.9+(s.newsN?12:0)));
+  const fails=s.checks.filter(c=>!c.pass).map(c=>c.r.id);
+  $("drawer").innerHTML=`
+    <div class="row" style="justify-content:space-between"><div><span class="num" style="color:var(--muted)">${s.t} · ${s.sector}</span><h2 style="margin:0">${s.name}</h2></div><button class="btn ghost" id="closeD" style="padding:6px 12px">Close</button></div>
+    <div class="row" style="margin-top:8px"><span class="st ${s.inc?"in":"out"}">${s.inc?"Included · "+fmt(s.amt):"Excluded"}</span></div>
+    <div class="dsec"><div class="price"><b>$${s.px.toFixed(2)}</b><span id="chg"></span></div><div id="chartBox"></div>
+      <div class="tf">${["1W","1M","6M","1Y","5Y"].map(x=>`<button>${x}</button>`).join("")}</div></div>
+    <div class="dsec"><h3>Key metrics</h3><div class="metrics">${[...shownM].map(k=>`<div class="m"><span>${ALLM[k][0]}</span><b>${ALLM[k][1](s)}</b></div>`).join("")}</div></div>
+    <div class="dsec pcgrid"><div class="box p"><h3>Pros</h3><ul>${s.pros.map(p=>`<li>${p}</li>`).join("")}</ul></div><div class="box c"><h3>Cons</h3><ul>${s.cons.map(p=>`<li>${p}</li>`).join("")}</ul></div></div>
+    <div class="dsec"><h3>Your rules</h3><div class="checks">${s.checks.map(c=>`<div><span class="${c.pass?"pro":"con"}">${c.pass?"✓":"✕"}</span><span class="cid">${c.r.id}</span><span>${c.r.text}<span style="color:var(--muted);font-size:12px"> · ${c.r.kind==="hard"?"hard rule":"preference"}</span></span></div>`).join("")}</div></div>
+    <div class="dsec"><h3>AI analysis</h3>
+      <div class="agent"><div class="av" style="background:${AG[0][3]}">F</div><div><div class="who">${AG[0][1]} <span>${AG[0][2]}</span></div><p>Revenue is growing ${s.revg}% with a ${s.gm}% gross margin. ${s.fcf>0?`It turns ${s.fcf}% of revenue into free cash, so growth is self-funded.`:`It is still burning cash (FCF ${s.fcf}%), so it may need to raise money.`} ${s.pe?`At ${s.pe}× earnings the price ${s.pe>45?"already assumes a lot":"looks reasonable for this growth"}.`:"There are no earnings yet to value it on."}</p></div></div>
+      <div class="agent" style="animation-delay:.15s"><div class="av" style="background:${AG[1][3]}">N</div><div><div class="who">${AG[1][1]} <span>${AG[1][2]}</span></div><p>Positive: ${s.newsP.toLowerCase()}. Negative: ${s.newsN.toLowerCase()}. With 1-year volatility of ${s.vol}% and a ${-s.dd}% drawdown, I score event risk at <b>${volRisk}/100</b>.</p></div></div>
+      <div class="agent" style="animation-delay:.3s"><div class="av" style="background:${AG[2][3]}">C</div><div><div class="who">${AG[2][1]} <span>your rules</span></div><p>${fails.length?`It fails ${fails.join(", ")}. ${s.hardFail.length?`${s.hardFail[0].r.id} is a hard rule, so it can't be included as your rules stand.`:"These are preferences, so it can stay in at a smaller weight."}`:"It passes every rule you set."} ${s.inc?`At ${fmt(s.amt)} it is ${(s.amt/1000).toFixed(1)}% of the portfolio, inside your per-holding limit.`:""}</p></div></div>
+      <div class="decision" style="margin-top:6px"><h3 style="color:var(--accent)">Decision</h3><b>${s.inc?`Include at ${fmt(s.amt)}`:"Exclude"}</b><p style="margin:6px 0 0;font-size:13.5px">${s.inc?`Strongest reason: ${s.pros[0].toLowerCase()}. Main risk to watch: ${s.cons[0].toLowerCase()}.`:`${s.reason}. ${s.cf}.`}</p></div>
+    </div>`;
+  $("closeD").onclick=closeDrawer;document.querySelectorAll(".tf button").forEach(b=>b.onclick=()=>{tf=b.textContent;draw()});draw();
+  $("drawer").classList.add("on");$("scrim").classList.add("on");$("drawer").scrollTop=0;
+}
+function closeDrawer(){$("drawer").classList.remove("on");$("scrim").classList.remove("on")}
+$("scrim").onclick=closeDrawer;document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+
+// ---------- swipe
+let deck=[];
+function renderDeck(){
+  const {res}=evaluate();deck=res.filter(s=>!s.hardFail.length&&override[s.t]===undefined).sort((a,b)=>a.inc-b.inc);
+  drawDeck();
+}
+function drawDeck(){
+  const {res}=evaluate();
+  $("deck").innerHTML=deck.slice(0,3).reverse().map((d,i,arr)=>{const s=res.find(x=>x.t===d.t);const top=i===arr.length-1;
+    return `<div class="sc" data-t="${s.t}" style="transform:scale(${1-(arr.length-1-i)*.04}) translateY(${(arr.length-1-i)*10}px)">
+      <span class="st ${s.inc?"in":"out"} tag">${s.inc?"Currently included · "+fmt(s.amt):"Currently excluded"}</span>
+      <h2 style="margin:0">${s.name}</h2><span class="num" style="color:var(--muted);font-size:13px">${s.t} · ${s.sector}</span>
+      <div class="metrics" style="grid-template-columns:1fr 1fr"><div class="m"><span>Revenue growth</span><b>+${s.revg}%</b></div><div class="m"><span>FCF margin</span><b>${s.fcf}%</b></div><div class="m"><span>Volatility</span><b>${s.vol}%</b></div><div class="m"><span>1Y return</span><b>${s.ret>0?"+":""}${s.ret}%</b></div></div>
+      <div class="pro" style="font-size:13.5px">+ ${s.pros[0]}</div><div class="con" style="font-size:13.5px">− ${s.cons[0]}</div></div>`}).join("")||`<div class="card" style="text-align:center">All reviewed. <button class="btn" data-go2>See updated portfolio</button></div>`;
+  const b=$("deck").querySelector("[data-go2]");if(b)b.onclick=()=>go(4);
+  const top=$("deck").lastElementChild;if(top&&top.classList.contains("sc"))drag(top);
+}
+function drag(el){let x0=null,dx=0;
+  el.onpointerdown=e=>{x0=e.clientX;el.setPointerCapture(e.pointerId);el.style.transition="none"};
+  el.onpointermove=e=>{if(x0===null)return;dx=e.clientX-x0;el.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`};
+  el.onpointerup=()=>{el.style.transition="";if(Math.abs(dx)>90)decide(dx>0);else el.style.transform="";x0=null;dx=0};}
+function decide(yes){
+  const top=$("deck").lastElementChild;if(!top||!top.classList.contains("sc"))return;
+  const {res}=evaluate();const s=res.find(x=>x.t===top.dataset.t);
+  const before=evaluate().picks.reduce((a,p)=>a+p.vol*p.amt,0)/100000;
+  top.style.transform=`translateX(${yes?420:-420}px) rotate(${yes?18:-18}deg)`;top.style.opacity="0";
+  override[s.t]=yes?"in":"out";
+  if(yes){learned.growth+=s.revg>30?.5:0;learned.profit+=s.fcf>0?.3:-.3}else{learned.profit+=s.fcf>0?-.2:.4}
+  const after=evaluate().picks.reduce((a,p)=>a+p.vol*p.amt,0)/100000;
+  const lp=learned.profit,lg=learned.growth;
+  $("learn").textContent=`Learned so far: ${lp>=0?"prefers":"tolerates less"} profitable companies (${lp>=0?"+":""}${lp.toFixed(1)}) · growth tilt +${lg.toFixed(1)}`;
+  toast(`${yes?"Added":"Dropped"} ${s.name}. Portfolio volatility ${before.toFixed(0)}% → ${after.toFixed(0)}%${yes&&s.vol>(30+$("risk").value*4)?" · now above your C7 limit":""}`);
+  setTimeout(()=>{deck=deck.filter(d=>d.t!==s.t);drawDeck()},300);
+}
+$("yesBtn").onclick=()=>decide(true);$("noBtn").onclick=()=>decide(false);
+$("infoBtn").onclick=()=>{const t=$("deck").lastElementChild;if(t&&t.dataset.t)openDrawer(t.dataset.t)};
+
+// ---------- settings
+$("setList").innerHTML=Object.entries(ALLM).map(([k,v])=>`<label><input type="checkbox" id="m-${k}" ${shownM.has(k)?"checked":""}> ${v[0]}</label>`).join("");
+$("setList").querySelectorAll("input").forEach(c=>c.onchange=()=>{const k=c.id.slice(2);c.checked?shownM.add(k):shownM.delete(k);try{localStorage.setItem("mandate-metrics",JSON.stringify([...shownM]))}catch(e){}});
+$("setBtn").onclick=()=>$("settings").hidden=!$("settings").hidden;
+buildRules();
+</script>
