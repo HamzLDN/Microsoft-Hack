@@ -14,10 +14,12 @@ type Shape = {
   corrections: Correction[];
   parses: { userId: string; parsed: number; corrected: number; at: string }[];
   stats: Stats;
+  sessions: any[];
+  chats: { at: string; userId: string; mode: string; agent?: string; ticker?: string; question: string; reply: string; model?: string; offline?: boolean; retried?: boolean; blocked?: number[] }[];
 };
 
 const FILE = process.env.MANDATE_DB_FILE || path.join(process.cwd(), "data", "db.json");
-const EMPTY: Shape = { users: [], prefs: {}, learned: {}, feedback: [], corrections: [], parses: [],
+const EMPTY: Shape = { users: [], prefs: {}, learned: {}, feedback: [], corrections: [], parses: [], sessions: [], chats: [],
   stats: { analystRuns: 0, firstTryPass: 0, retried: 0, fallbacks: 0, numbersChecked: 0, unsupportedBlocked: 0 } };
 
 let mem: Shape | null = null;

@@ -81,9 +81,50 @@ export function Funnel({ p }: { p: Portfolio }) {
 type Trust = { correctionRate: number | null; correctionsStored: number; learned: { notes: string[] } | null;
   stats: { analystRuns: number; firstTryPass: number; retried: number; fallbacks: number; numbersChecked: number; unsupportedBlocked: number }; evals: any };
 
-export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, onEdit, onAsk, trust, onResetLearning }: {
+type Committee = { status: "idle" | "running" | "done" | "failed"; changes?: { ticker: string; name: string; kind: string; before: number; after: number; scoreBefore: number; scoreAfter: number; reason: string; speaker: string }[]; items?: { ticker: string; debate: { finalStances: Record<string, string>; shifts: unknown[] } }[]; sessionId?: string; reviewed?: number };
+
+function CommitteeCard({ c, onOpen, onRerun }: { c: Committee; onOpen: (t: string) => void; onRerun: () => void }) {
+  const verb: Record<string, string> = { added: "Added", dropped: "Dropped", increased: "Increased", decreased: "Trimmed" };
+  return (
+    <div className="paper border-accent/40 p-5 shadow-paper">
+      <div className="flex items-baseline justify-between"><p className="label !text-accent">Committee review</p>
+        {c.status === "done" && <a className="text-xs font-semibold text-accent" href={`/backstage#${c.sessionId}`} target="_blank">Full discussion</a>}</div>
+      {c.status === "running" && <p className="mt-2 animate-pulse text-sm">Three analysts are reviewing each holding and the closest misses, then debating them…</p>}
+      {c.status === "failed" && <p className="mt-2 text-sm text-bad">The review could not finish. <button className="font-semibold text-accent" onClick={onRerun}>Try again</button></p>}
+      {c.status === "idle" && <button className="btn mt-2" onClick={onRerun}>Run committee review</button>}
+      {c.status === "done" && (
+        <>
+          <p className="mt-1 text-sm text-muted">Reviewed {c.reviewed} companies. {c.changes?.length ? `The discussion changed ${c.changes.length}:` : "The discussion confirmed every holding."}</p>
+          <ul className="mt-3 grid gap-3">
+            {c.changes?.map((x) => (
+              <li key={x.ticker}>
+                <button className="w-full rounded-lg p-2 text-left text-sm transition hover:bg-sky" onClick={() => onOpen(x.ticker)}>
+                  <span className="flex flex-wrap items-baseline gap-2">
+                    <Pill tone={x.kind === "added" || x.kind === "increased" ? "good" : "bad"}>{verb[x.kind]}</Pill>
+                    <b>{x.name}</b><span className="num text-xs text-muted">{money(x.before)} to {money(x.after)} · score {Math.round(x.scoreBefore)} to {Math.round(x.scoreAfter)}</span>
+                  </span>
+                  <span className="mt-1 block text-muted"><b className="text-ink">{x.speaker}:</b> <Bold text={x.reason} /></span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, onEdit, onAsk, trust, onResetLearning, committee, onRerunCommittee }: {
   p: Portfolio; rules: AppRule[]; onOpen: (t: string) => void; onConsidered: () => void; onChallenge: () => void; onEdit: () => void; onAsk: (q: string) => void; trust: Trust | null; onResetLearning: () => void;
+  committee: Committee; onRerunCommittee: () => void;
 }) {
+  const dissent = (t: string) => {
+    const it = committee.items?.find((x) => x.ticker === t);
+    if (!it) return null;
+    const st = Object.values(it.debate.finalStances);
+    const against = st.filter((s) => s === "exclude").length;
+    return against ? <Pill tone="warn">{against} of 3 analysts against</Pill> : st.every((s) => s === "include") ? <Pill tone="good">Committee agrees</Pill> : null;
+  };
   const loss = rules.find((r) => r.field === "max_bad_year_loss");
   return (
     <Screen k="portfolio">
@@ -104,7 +145,7 @@ export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, o
                 <button className="grid w-full grid-cols-[12px_1fr_auto] gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-sky" onClick={() => onOpen(h.ticker)}>
                   <span className="mt-1.5 h-3 w-3 rounded" style={{ background: COLORS[i % COLORS.length] }} />
                   <span className="min-w-0">
-                    <span className="font-semibold">{h.name}</span> <span className="num text-xs text-muted">{h.ticker} · {h.sector}</span>
+                    <span className="font-semibold">{h.name}</span> <span className="num text-xs text-muted">{h.ticker} · {h.sector}</span> {dissent(h.ticker)}
                     <span className="mt-0.5 flex flex-wrap gap-x-4 text-sm"><span className="text-good">+ <Bold text={h.pros[0]?.text ?? ""} /></span><span className="text-bad">minus <Bold text={h.cons[0]?.text ?? ""} /></span></span>
                   </span>
                   <span className="text-right"><b className="num block">{money(h.amount)}</b>{h.score.total ? <span className="num text-xs text-muted">score {Math.round(h.score.total)}</span> : null}</span>
@@ -114,6 +155,7 @@ export function PortfolioScreen({ p, rules, onOpen, onConsidered, onChallenge, o
           </ul>
         </div>
         <div className="grid content-start gap-4">
+          <CommitteeCard c={committee} onOpen={onOpen} onRerun={onRerunCommittee} />
           <div className="paper p-5">
             <p className="label">Risk</p>
             <p className="mt-1"><span className="num text-2xl">{money(p.badYearLoss)}</span> <span className="text-muted">bad year loss<Info term="Bad year loss" onAsk={onAsk} /></span></p>

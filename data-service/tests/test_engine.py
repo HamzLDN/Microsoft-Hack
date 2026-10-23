@@ -108,3 +108,15 @@ def test_swiped_in_company_gets_a_real_share(snaps, demo_rules):
     stocks = [h["amount"] for h in q["holdings"] if h["ticker"] in snaps and snaps[h["ticker"]]["type"] == "stock" and h["ticker"] != t]
     added = next(h["amount"] for h in q["holdings"] if h["ticker"] == t)
     assert added >= min(stocks) - 100
+
+
+def test_committee_adjustments_change_the_outcome(snaps, demo_rules):
+    base = build(snaps, demo_rules)
+    held = [h["ticker"] for h in base["holdings"] if h["ticker"] in snaps and snaps[h["ticker"]]["type"] == "stock"]
+    out = [c["ticker"] for c in base["considered"] if c["status"] == "excluded" and c["mainReason"].startswith("Ranked")]
+    q = build(snaps, demo_rules, adjustments={held[0]: -40, **({out[0]: 40} if out else {})})
+    status = {c["ticker"]: c for c in q["considered"]}
+    assert status[held[0]]["status"] == "excluded"
+    assert any(a["ruleId"] == "Committee" for a in status[held[0]]["score"]["ruleAdjustments"])
+    if out:
+        assert status[out[0]]["status"] == "included"

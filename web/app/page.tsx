@@ -33,6 +33,7 @@ export default function Home() {
   const [shown, setShown] = useState<string[]>(DEFAULT_METRICS);
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState("");
+  const [committee, setCommittee] = useState<{ status: "idle" | "running" | "done" | "failed"; changes?: any[]; items?: any[]; sessionId?: string; adjustments?: Record<string, number>; reviewed?: number }>({ status: "idle" });
 
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(null), 3800); };
   const ask = (q: string) => setHelp({ open: true, prefill: `${q} ` + "​".repeat(Math.random() * 5) });
@@ -68,18 +69,32 @@ export default function Home() {
   };
 
   const build = useCallback(async (ov = overrides, w = weights) => {
-    const res = await api<Portfolio & { error?: string }>("/api/portfolio", { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides: ov, weights: w });
+    const res = await api<Portfolio & { error?: string }>("/api/portfolio", { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides: ov, weights: w, adjustments: committee.adjustments });
     setP(res);
     api("/api/learning").then(setTrust).catch(() => null);
     return res;
-  }, [rules, form, overrides, weights]);
+  }, [rules, form, overrides, weights, committee.adjustments]);
+
+  const runCommittee = async () => {
+    setCommittee({ status: "running" });
+    try {
+      const r = await api("/api/committee", { request: { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides, weights }, client });
+      setP(r.portfolio);
+      setCommittee({ status: "done", changes: r.changes, items: r.items, sessionId: r.sessionId, adjustments: r.adjustments, reviewed: r.items.length });
+      flash(r.changes.length ? `The committee changed **${r.changes.length}** holdings after discussing them.` : "The committee reviewed every holding and kept the portfolio as it was.");
+    } catch {
+      setCommittee({ status: "failed" });
+    }
+  };
 
   const buildFirst = async () => {
     setError(""); setStep("building"); setOverrides({});
-    const work = build({}, weights);
+    setCommittee({ status: "idle" });
+    const work = api<Portfolio>("/api/portfolio", { rules, horizon: form.horizon, risk: form.risk, maxHolding: form.maxHolding, overrides: {}, weights }).then((res) => { setP(res); return res; });
     await animateLines([`Screening 84 companies and funds against ${rules.filter((r) => r.kind === "hard").length} hard rules`, "Scoring growth, profit, stability, income, value and news", `Fitting the mix to a ${form.horizon} year horizon`, "Checking the bad year loss limit", "Writing pros and cons for every company"], work);
     const r = await work.catch((e) => { setError(e.message); return null; });
     setStep(r ? "portfolio" : "understood");
+    if (r) runCommittee();
   };
 
   const onSwipe = async (c: Candidate, own: boolean) => {
@@ -148,15 +163,15 @@ export default function Home() {
           {step === "loading" && <LoadingScreen key="l" title="Reading your preferences" lines={lines} />}
           {step === "understood" && <UnderstoodScreen key="u" rules={rules} setRules={setRules} onBack={() => setStep("prefs")} onNext={buildFirst} onAsk={ask} />}
           {step === "building" && <LoadingScreen key="b" title="Building your portfolio" lines={lines} />}
-          {step === "portfolio" && p && <PortfolioScreen key="p" p={p} rules={rules} trust={trust} onOpen={setDrawer} onConsidered={() => setStep("considered")} onChallenge={() => setStep("challenge")} onEdit={() => setStep("prefs")} onAsk={ask}
+          {step === "portfolio" && p && <PortfolioScreen key="p" p={p} rules={rules} trust={trust} committee={committee} onRerunCommittee={runCommittee} onOpen={setDrawer} onConsidered={() => setStep("considered")} onChallenge={() => setStep("challenge")} onEdit={() => setStep("prefs")} onAsk={ask}
             onResetLearning={async () => { await api("/api/learning", undefined, "DELETE"); setWeights(undefined); await build(overrides, undefined); }} />}
           {step === "considered" && p && <ConsideredScreen key="c" p={p} rules={rules} onOpen={setDrawer} onBack={() => setStep("portfolio")} onChallenge={() => setStep("challenge")} />}
           {step === "challenge" && p && <ChallengeScreen key="ch" p={p} onDecide={onSwipe} onOpen={setDrawer} onDone={() => setStep("portfolio")} learnedNote={learnedNote} />}
         </AnimatePresence>
-        {step !== "auth" && step !== "boot" && <p className="mt-12 text-center text-xs text-muted">Educational hackathon project. Not financial advice. · <a href="/system" target="_blank" className="underline hover:text-accent">System checks</a></p>}
+        {step !== "auth" && step !== "boot" && <p className="mt-12 text-center text-xs text-muted">Educational hackathon project. Not financial advice. · <a href="/backstage" target="_blank" className="underline hover:text-accent">Backstage</a></p>}
       </div>
 
-      <StockDrawer ticker={drawer} p={p} rules={rules} client={client} shown={shown} onClose={() => setDrawer(null)} onAsk={ask} onReweight={reweight} />
+      <StockDrawer ticker={drawer} p={p} rules={rules} client={client} shown={shown} committeeItem={committee.items?.find((x) => x.ticker === drawer)} onClose={() => setDrawer(null)} onAsk={ask} onReweight={reweight} />
       {user && <HelpChat open={help.open} setOpen={(o) => setHelp({ ...help, open: o })} prefill={help.prefill} context={`Screen: ${step}. ${drawer ? `Looking at ${drawer}.` : ""} ${p ? `Portfolio bad year loss ${p.badYearLoss}, split ${JSON.stringify(p.split)}.` : ""}`} />}
       <Toast text={toast} />
     </main>

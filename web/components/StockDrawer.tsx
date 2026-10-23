@@ -14,7 +14,8 @@ const AGENTS: { key: AgentName; title: string; tag: string; color: string }[] = 
 const RANGES = ["1W", "1M", "6M", "1Y", "5Y"];
 type Run = { output: AnalystOutput; evidence: Evidence[]; attempts: number; provider?: string };
 type Turn = { from: AgentName; to: AgentName | "committee"; kind: "agree" | "challenge" | "question" | "summary"; text: string; evidenceIds: string[]; model: string };
-type Debate = { turns: Turn[]; finalStances: Record<AgentName, AnalystOutput["stance"]>; fallback: boolean };
+type Debate = { turns: Turn[]; finalStances: Record<AgentName, AnalystOutput["stance"]>; shifts: { agent: AgentName; from: string; to: string; reason: string }[]; fallback: boolean };
+type CommitteeItem = { round1: AnalystOutput[]; models: string[]; debate: Debate; adjustment: number; evidence: Evidence[]; before: { status: string; amount: number; score: number }; after?: { status: string; amount: number; score: number } };
 type Msg = { role: "user" | "assistant"; content: string };
 
 function Chart({ points }: { points: [string, number][] }) {
@@ -91,8 +92,9 @@ function AnalystCard({ a, run, onAsk }: { a: (typeof AGENTS)[number]; run?: Run;
   );
 }
 
-export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, onReweight }: {
+export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, onReweight, committeeItem }: {
   ticker: string | null; p: Portfolio | null; rules: AppRule[]; client: string; shown: string[]; onClose: () => void; onAsk: (q: string) => void; onReweight: (w: Record<string, number>) => void;
+  committeeItem?: CommitteeItem;
 }) {
   const c: Candidate | undefined = p && ticker ? [...p.holdings, ...p.considered].find((x) => x.ticker === ticker) : undefined;
   const [range, setRange] = useState("1Y");
@@ -115,6 +117,11 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
   }, [ticker]);
   useEffect(() => {
     if (!c || !p) return;
+    if (committeeItem) {
+      setRuns(Object.fromEntries(committeeItem.round1.map((o, i) => [o.agent, { output: o, evidence: committeeItem.evidence, attempts: 1, provider: committeeItem.models[i] }])));
+      setDebate(committeeItem.debate);
+      return;
+    }
     for (const a of AGENTS) {
       api("/api/analysis", { agent: a.key, candidate: c, rules, badYearLoss: p.badYearLoss, client })
         .then((r) => setRuns((x) => ({ ...x, [a.key]: { output: r.output, evidence: r.evidence, attempts: r.attempts, provider: r.provider } })))
@@ -134,7 +141,7 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
   const askAnalyst = async (agent: AgentName, messages: Msg[]) => {
     const r = runs[agent];
     const view = r ? r.output.points.map((p) => `${p.polarity === "pro" ? "+" : "minus"} ${p.text}`).join("; ") : "";
-    return (await api("/api/chat", { mode: "analyst", agent, evidence: r?.evidence ?? [], client, view, messages })).reply as string;
+    return (await api("/api/chat", { mode: "analyst", agent, ticker: c?.ticker, evidence: r?.evidence ?? [], client, view, messages })).reply as string;
   };
   const fmt = (k: string, v: number) => (k === "price" ? `$${v.toFixed(2)}` : k === "mcap" ? `$${v.toFixed(0)}B` : ["pe", "beta", "debtToEquity"].includes(k) ? v.toFixed(2) : `${v.toFixed(1)}%`);
   const parts = c?.score.parts ?? [];
@@ -224,6 +231,18 @@ export function StockDrawer({ ticker, p, rules, client, shown, onClose, onAsk, o
                         </motion.div>
                       );
                     })}
+                    {debate.shifts?.length > 0 && (
+                      <div className="rounded-lg border border-warn/40 bg-warnsoft p-3 text-sm">
+                        <p className="label !text-warn">Minds changed</p>
+                        {debate.shifts.map((x) => <p key={x.agent} className="mt-1"><b>{AGENTS.find((a) => a.key === x.agent)!.title}</b>: {x.from} to <b>{x.to}</b>{x.reason ? `, because ${x.reason.charAt(0).toLowerCase()}${x.reason.slice(1)}` : ""}.</p>)}
+                      </div>
+                    )}
+                    {committeeItem?.after && (
+                      <div className="rounded-lg bg-baby p-3 text-sm">
+                        <p className="label !text-accent">Effect on the portfolio</p>
+                        <p className="mt-1">Committee score change <b className="num">{committeeItem.adjustment > 0 ? "plus" : committeeItem.adjustment < 0 ? "minus" : ""} {Math.abs(committeeItem.adjustment)}</b> · score <span className="num">{Math.round(committeeItem.before.score)} to {Math.round(committeeItem.after.score)}</span> · amount <span className="num">{money(committeeItem.before.amount)} to {money(committeeItem.after.amount)}</span>{committeeItem.before.status !== committeeItem.after.status ? ` · now ${committeeItem.after.status}` : ""}</p>
+                      </div>
+                    )}
                     <p className="text-xs text-muted">After the discussion: {AGENTS.map((a) => `${a.title.split(" ")[0]} leans ${debate.finalStances[a.key]}`).join(" · ")}.{debate.fallback ? " Discussion generated from the data while the AI key is not connected." : ""}</p>
                   </div>
                 )}

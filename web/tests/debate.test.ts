@@ -21,6 +21,22 @@ describe("committee discussion (offline)", () => {
     for (const t of d.turns) for (const n of extractNumbers(t.text)) expect(numberSupported(n, allowed)).toBe(true);
   });
   it("a failing client rule changes the fit analyst's final stance", () => {
-    expect(d.finalStances.fit).toBe("exclude");
+    expect(d.finalStances.fit).toBe("neutral");
+    expect(d.shifts.find((x) => x.agent === "fit")?.reason).toMatch(/fails/);
+  });
+});
+
+import { committeeAdjustment } from "@/lib/ai/debate";
+describe("discussion changes outcomes", () => {
+  const r1 = ["fundamentals", "markets", "fit"].map((a) => ({ agent: a, stance: "include", confidence: 0.6, points: [], summary: "", fallback: true })) as any;
+  it("a landed challenge moves the challenged analyst and lowers the committee score", () => {
+    const d = fallbackDebate({ ticker: "X", name: "X" } as any, r1, ev);
+    expect(d.shifts.length).toBeGreaterThan(0);
+    const unchanged = { turns: [], shifts: [], fallback: true, finalStances: { fundamentals: "include", markets: "include", fit: "include" } } as any;
+    expect(committeeAdjustment(r1, d)).toBeLessThan(committeeAdjustment(r1, unchanged));
+  });
+  it("two analysts against means a strong negative change", () => {
+    const d = { turns: [], shifts: [], fallback: true, finalStances: { fundamentals: "exclude", markets: "exclude", fit: "include" } } as any;
+    expect(committeeAdjustment(r1, d)).toBe(-15);
   });
 });

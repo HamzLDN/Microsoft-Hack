@@ -106,7 +106,9 @@ def _pros_cons(c: dict, snap: dict, checks: List[dict], rules: List[dict]):
 
 
 def build(snaps: Dict[str, dict], rules: List[dict], horizon: float = 9, risk: float = 5, max_holding="AI",
-          weights: Optional[Dict[str, float]] = None, overrides: Optional[Dict[str, str]] = None, amount: float = 100_000) -> dict:
+          weights: Optional[Dict[str, float]] = None, overrides: Optional[Dict[str, str]] = None, amount: float = 100_000,
+          adjustments: Optional[Dict[str, float]] = None) -> dict:
+    """adjustments: committee score changes per ticker, from the analysts' discussion."""
     from engine.score import default_weights
     weights, overrides = weights or default_weights(horizon, risk), overrides or {}
     horizon = float((_rule(rules, "horizon_years") or {}).get("value") or horizon)
@@ -127,6 +129,9 @@ def build(snaps: Dict[str, dict], rules: List[dict], horizon: float = 9, risk: f
         sc = scores[s["ticker"]]
         adj = [{"ruleId": r["id"], "points": soft_points(r, ch["pass"])} for r, ch in zip(rules, checks)
                if r["kind"] == "soft" and r["field"] not in ("horizon_years", "max_bad_year_loss", "max_holding_pct", "note")]
+        committee = float((adjustments or {}).get(s["ticker"], 0))
+        if committee:
+            adj = adj + [{"ruleId": "Committee", "points": round(committee, 1)}]
         sc = {**sc, "ruleAdjustments": adj, "total": round(max(0, min(100, sc["total"] + sum(a["points"] for a in adj))), 1)}
         hard_fail = [ch["ruleId"] for r, ch in zip(rules, checks) if r["kind"] == "hard" and not ch["pass"]]
         cands.append({"snap": s, "ticker": s["ticker"], "checks": checks, "score": sc, "hardFail": hard_fail})

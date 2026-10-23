@@ -87,7 +87,8 @@ def portfolio():
     horizon, risk = float(body.get("horizon", 9)), float(body.get("risk", 5))
     snaps = data.snapshots(list(universe.ALL))
     return jsonify(build(snaps, body.get("rules", []), horizon, risk, body.get("maxHolding", "AI"),
-                         body.get("weights"), body.get("overrides"), float(body.get("amount", config.DEFAULT_AMOUNT))))
+                         body.get("weights"), body.get("overrides"), float(body.get("amount", config.DEFAULT_AMOUNT)),
+                         body.get("adjustments")))
 
 
 @app.post("/risk-preview")
