@@ -4,20 +4,27 @@ import { db, save } from "./db";
 
 const COOKIE = "mandate_session";
 const SECRET = process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET || "mandate-dev-secret";
-// Seeded demo account (test credentials for the hackathon demo, also listed in the README)
+// Seeded demo accounts (test credentials for the hackathon demo, also listed in the README)
 export const DEMO_EMAIL = "demo@mandate.app";
 const DEMO_PASSWORD = "demo1234";
+const DEMO_USERS = [
+  { id: "demo", email: DEMO_EMAIL },
+  { id: "john", email: "john.doe@mandate.app" },
+];
 
 const hashPw = (pw: string, salt: string) => crypto.scryptSync(pw, salt, 32).toString("hex");
 const sign = (v: string) => crypto.createHmac("sha256", SECRET).update(v).digest("hex").slice(0, 32);
 
 export function ensureDemoUser() {
   const d = db();
-  if (!d.users.some((u) => u.email === DEMO_EMAIL)) {
+  let added = false;
+  for (const u of DEMO_USERS) {
+    if (d.users.some((x) => x.email === u.email)) continue;
     const salt = crypto.randomBytes(8).toString("hex");
-    d.users.push({ id: "demo", email: DEMO_EMAIL, salt, hash: hashPw(DEMO_PASSWORD, salt), createdAt: new Date().toISOString() });
-    save();
+    d.users.push({ id: u.id, email: u.email, salt, hash: hashPw(DEMO_PASSWORD, salt), createdAt: new Date().toISOString() });
+    added = true;
   }
+  if (added) save();
 }
 
 export function register(email: string, password: string) {

@@ -23,7 +23,11 @@ Microsoft x LSEG London Hackathon 2026. Educational project. Not financial advic
 ./start.sh --reset    # same, but wipes saved users, preferences and learning first (do this before the demo)
 ```
 
-Demo login: `demo@mandate.app` / `demo1234` (a seeded test account). Anyone can also create an account.
+Demo logins (seeded test accounts, password `demo1234` for both):
+* **John Doe**: `john.doe@mandate.app` (use this one in the demo)
+* `demo@mandate.app`
+
+Anyone can also create an account. Backstage, with the AI discussions and chats, is at `http://localhost:3000/backstage`.
 
 Needs Python 3.11 and Node 20. On the hackathon Mac, Node lives in `~/.local/node` and `start.sh` adds it to the PATH.
 
