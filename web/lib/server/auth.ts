@@ -49,10 +49,34 @@ export function login(email: string, password: string) {
   return u;
 }
 
-export function setSession(userId: string) {
+export function sessionToken(userId: string) {
   const exp = Date.now() + 7 * 864e5;
   const v = `${userId}.${exp}`;
-  cookies().set(COOKIE, `${v}.${sign(v)}`, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 7 * 86400 });
+  return `${v}.${sign(v)}`;
+}
+
+export function userFromSessionToken(raw: string | null | undefined) {
+  if (!raw) return null;
+  const [id, exp, sig] = raw.split(".");
+  if (!id || !exp || sign(`${id}.${exp}`) !== sig || Number(exp) < Date.now()) return null;
+  const u = db().users.find((x) => x.id === id);
+  return u ? { id: u.id, email: u.email } : null;
+}
+
+/** Web cookie session, or mobile Bearer token on API requests. */
+export function resolveUser(req?: Request) {
+  if (req) {
+    const auth = req.headers.get("authorization");
+    if (auth?.startsWith("Bearer ")) {
+      const u = userFromSessionToken(auth.slice(7).trim());
+      if (u) return u;
+    }
+  }
+  return currentUser();
+}
+
+export function setSession(userId: string) {
+  cookies().set(COOKIE, sessionToken(userId), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 7 * 86400 });
 }
 
 export function clearSession() {
@@ -60,10 +84,5 @@ export function clearSession() {
 }
 
 export function currentUser() {
-  const raw = cookies().get(COOKIE)?.value;
-  if (!raw) return null;
-  const [id, exp, sig] = raw.split(".");
-  if (!id || !exp || sign(`${id}.${exp}`) !== sig || Number(exp) < Date.now()) return null;
-  const u = db().users.find((x) => x.id === id);
-  return u ? { id: u.id, email: u.email } : null;
+  return userFromSessionToken(cookies().get(COOKIE)?.value);
 }

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { applySwipe } from "@/lib/learning";
-import { currentUser } from "@/lib/server/auth";
+import { resolveUser } from "@/lib/server/auth";
 import { db, save } from "@/lib/server/db";
 
 export async function POST(req: Request) {
   const { kind, before, after, context } = await req.json();
-  const u = currentUser();
+  const u = resolveUser(req);
   const uid = u?.id ?? "anon";
   const d = db();
   d.feedback.push({ userId: uid, kind, before, after, context, createdAt: new Date().toISOString() });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { callJSON, llmConfigured } from "@/lib/ai/llm";
 import { applyMemory, cleanLlmRules, fewShot, formRules, keywordRules, mergeRules, PARSE_SYSTEM, similarCorrections } from "@/lib/ai/parser";
-import { currentUser } from "@/lib/server/auth";
+import { resolveUser } from "@/lib/server/auth";
 import { db, save } from "@/lib/server/db";
 import type { AppRule, FormInput } from "@/lib/types";
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     textRules = applyMemory(textRules, text, d.corrections);
   }
   const rules = mergeRules(formRules(form), textRules);
-  const u = currentUser();
+  const u = resolveUser(req);
   d.parses.push({ userId: u?.id ?? "anon", parsed: rules.filter((r) => r.source === "text").length, corrected: 0, at: new Date().toISOString() });
   save();
   return NextResponse.json({ rules, method, examplesUsed: examples.length });

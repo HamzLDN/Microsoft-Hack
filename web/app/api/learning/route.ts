@@ -2,11 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { correctionRate } from "@/lib/learning";
-import { currentUser } from "@/lib/server/auth";
+import { resolveUser } from "@/lib/server/auth";
 import { db, save } from "@/lib/server/db";
 
-export async function GET() {
-  const u = currentUser();
+export async function GET(req: Request) {
+  const u = resolveUser(req);
   const d = db();
   let evals = null;
   try {
@@ -21,8 +21,8 @@ export async function GET() {
   });
 }
 
-export async function DELETE() {
-  const u = currentUser();
+export async function DELETE(req: Request) {
+  const u = resolveUser(req);
   if (u) {
     delete db().learned[u.id];
     save();
