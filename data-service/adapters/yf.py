@@ -1,5 +1,10 @@
 """yfinance: price history (with dividends), company info and news. No key needed."""
+import logging
+
 import yfinance as yf
+
+# Yahoo's news feed often fails; we fall back quietly instead of flooding the terminal
+logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 from cache import get_or_fetch
 

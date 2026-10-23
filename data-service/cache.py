@@ -22,7 +22,7 @@ def get_or_fetch(key: str, ttl: float, fetch: Callable[[], Any]) -> Tuple[Option
     try:
         value = fetch()
     except Exception as exc:  # network, rate limit, bad JSON
-        log.warning("fetch failed for %s: %s", key, exc)
+        log.debug("fetch failed for %s: %s", key, exc)
         value = None
     if value is not None:
         _cache.set(key, {"t": time.time(), "v": value})
