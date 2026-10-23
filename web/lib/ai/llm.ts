@@ -89,3 +89,41 @@ export async function callJSON(system: string, user: string, timeoutMs = 12000, 
 export async function callText(messages: OpenAI.ChatCompletionMessageParam[], timeoutMs = 12000, opts: CallOpts = {}) {
   return complete(messages, false, timeoutMs, opts);
 }
+
+export async function callTextWithTools(
+  messages: OpenAI.ChatCompletionMessageParam[],
+  tools: OpenAI.ChatCompletionTool[],
+  onTool: (name: string, args: Record<string, unknown>) => Promise<string>,
+  timeoutMs = 20000,
+): Promise<string> {
+  const errors: string[] = [];
+  for (const p of providers()) {
+    try {
+      const convo: OpenAI.ChatCompletionMessageParam[] = [...messages];
+      for (let step = 0; step < 6; step++) {
+        const res = await p.client.chat.completions.create(
+          { model: p.model, messages: convo, tools, temperature: 0 },
+          { timeout: timeoutMs, maxRetries: 0 },
+        );
+        const msg = res.choices[0]?.message;
+        if (!msg) break;
+        const toolCalls = msg.tool_calls;
+        if (toolCalls?.length) {
+          convo.push(msg);
+          for (const tc of toolCalls) {
+            if (tc.type !== "function") continue;
+            const args = JSON.parse(tc.function.arguments || "{}") as Record<string, unknown>;
+            const content = await onTool(tc.function.name, args);
+            convo.push({ role: "tool", tool_call_id: tc.id, content });
+          }
+          continue;
+        }
+        if (msg.content) return msg.content;
+        break;
+      }
+    } catch (err) {
+      errors.push(`${p.name}: ${(err as Error).message}`);
+    }
+  }
+  throw new Error(errors.length ? `All LLM providers failed. ${errors.join(" | ")}` : "No LLM provider configured");
+}
